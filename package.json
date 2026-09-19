@@ -11,7 +11,7 @@
     "prisma:seed": "node prisma/seed.js"
   },
   "dependencies": {
-    "@prisma/client": "^6.15.0",
+    "@prisma/client": "6.19.3",
     "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.1",
@@ -20,14 +20,7 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
-    "multer": "^2.4.0"
-  },
-  "devDependencies": {
-    "prisma": "^6.15.0"
-  },
-  "allowScripts": {
-    "@prisma/client@6.19.3": true,
-    "@prisma/engines@6.19.3": true,
-    "prisma@6.19.3": true
+    "multer": "^2.4.0",
+    "prisma": "6.19.3"
   }
 }
