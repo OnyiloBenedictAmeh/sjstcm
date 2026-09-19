@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <meta
+    name="description"
+    content="Secure student and alumni portal login for Your School Name."
+  >
+
+  <meta
+    name="theme-color"
+    content="#0f172a"
+  >
+
+  <title>
+    Student Portal | Your School Name
+  </title>
+
+  <link
+    rel="icon"
+    type="image/png"
+    href="/images/favicon.png"
+  >
+
+  <link
+    rel="stylesheet"
+    href="/css/main.css"
+  >
+
+  <link
+    rel="stylesheet"
+    href="/css/responsive.css"
+  >
+</head>
+
+<body>
+
+  <!-- =========================
+       PORTAL PAGE
+  ========================== -->
+
+  <main class="auth-page">
+
+    <div class="auth-card">
+
+      <!-- BRAND -->
+
+      <a
+        href="/"
+        class="auth-brand"
+        id="portal-school-name"
+        aria-label="Return to school website"
+      >
+        YOUR SCHOOL
+      </a>
+
+
+      <!-- INTRO -->
+
+      <span class="eyebrow">
+        STUDENT PORTAL
+      </span>
+
+      <h1>
+        Welcome back.
+      </h1>
+
+      <p class="lead">
+        Sign in to access your student or alumni account.
+      </p>
+
+
+      <!-- LOGIN FORM -->
+
+      <form
+        id="login-form"
+        class="form"
+        novalidate
+      >
+
+        <div class="form-group">
+
+          <label for="login-email">
+            Email address
+          </label>
+
+          <input
+            id="login-email"
+            type="email"
+            name="email"
+            placeholder="Enter your email address"
+            autocomplete="email"
+            required
+          >
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label for="login-password">
+            Password
+          </label>
+
+          <div class="password-field">
+
+            <input
+              id="login-password"
+              type="password"
+              name="password"
+              placeholder="Enter your password"
+              autocomplete="current-password"
+              required
+            >
+
+            <button
+              type="button"
+              id="toggle-password"
+              class="password-toggle"
+              aria-label="Show password"
+              aria-pressed="false"
+            >
+              Show
+            </button>
+
+          </div>
+
+        </div>
+
+
+        <!-- STATUS -->
+
+        <p
+          id="login-status"
+          role="status"
+          aria-live="polite"
+        ></p>
+
+
+        <!-- SUBMIT -->
+
+        <button
+          type="submit"
+          class="button"
+          id="login-button"
+        >
+          Sign in
+        </button>
+
+      </form>
+
+
+      <!-- ADDITIONAL LINKS -->
+
+      <div class="auth-links">
+
+        <a href="/">
+          ← Back to website
+        </a>
+
+        <a href="/contact.html">
+          Need help?
+        </a>
+
+      </div>
+
+
+      <!-- PORTAL NOTE -->
+
+      <div class="auth-note">
+
+        <strong>
+          Student & Alumni Access
+        </strong>
+
+        <p>
+          Students can access their academic information,
+          while alumni can manage their alumni profile and
+          submit profile update requests.
+        </p>
+
+      </div>
+
+    </div>
+
+  </main>
+
+
+  <!-- =========================
+       PORTAL JAVASCRIPT
+  ========================== -->
+
+  <script src="/js/portal.js"></script>
+
+</body>
+
+</html>

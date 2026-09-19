@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <meta
+    name="description"
+    content="View the school calendar, upcoming activities, programmes and events at Your School Name."
+  >
+
+  <meta
+    name="theme-color"
+    content="#0f172a"
+  >
+
+  <meta
+    property="og:title"
+    content="Events | Your School Name"
+  >
+
+  <meta
+    property="og:description"
+    content="Stay informed about upcoming school activities, programmes and important events."
+  >
+
+  <meta
+    property="og:type"
+    content="website"
+  >
+
+  <meta
+    property="og:image"
+    content="/images/school-og.jpg"
+  >
+
+  <title>
+    Events | Your School Name
+  </title>
+
+  <link
+    rel="icon"
+    type="image/png"
+    href="/images/favicon.png"
+  >
+
+  <link
+    rel="stylesheet"
+    href="/css/main.css"
+  >
+
+  <link
+    rel="stylesheet"
+    href="/css/responsive.css"
+  >
+</head>
+
+<body>
+
+  <!-- =========================
+       SITE HEADER
+  ========================== -->
+
+  <header class="site-header">
+
+    <a
+      class="brand"
+      href="/"
+      id="school-name"
+      aria-label="Go to school homepage"
+    >
+      YOUR SCHOOL
+    </a>
+
+    <button
+      class="menu-toggle"
+      type="button"
+      aria-label="Toggle navigation menu"
+      aria-expanded="false"
+      aria-controls="main-navigation"
+    >
+      ☰
+    </button>
+
+    <nav
+      id="main-navigation"
+      aria-label="Main navigation"
+    >
+
+      <a href="/">
+        Home
+      </a>
+
+      <a href="/about.html">
+        About
+      </a>
+
+      <a href="/academics.html">
+        Academics
+      </a>
+
+      <a href="/departments.html">
+        Departments
+      </a>
+
+      <a href="/news.html">
+        News
+      </a>
+
+      <a
+        href="/events.html"
+        aria-current="page"
+      >
+        Events
+      </a>
+
+      <a href="/gallery.html">
+        Gallery
+      </a>
+
+      <a href="/contact.html">
+        Contact
+      </a>
+
+      <a href="/alumni/">
+        Alumni
+      </a>
+
+      <a
+        class="nav-button"
+        href="/student/login.html"
+      >
+        Student Portal
+      </a>
+
+    </nav>
+
+  </header>
+
+
+  <!-- =========================
+       PAGE CONTENT
+  ========================== -->
+
+  <main class="page">
+
+    <section class="page-header">
+
+      <span class="eyebrow">
+        EVENTS
+      </span>
+
+      <h1>
+        School calendar
+      </h1>
+
+      <p>
+        Keep up with upcoming school activities, programmes,
+        celebrations and important dates throughout the academic year.
+      </p>
+
+    </section>
+
+
+    <!-- =========================
+         EVENTS
+    ========================== -->
+
+    <section
+      class="section"
+      aria-labelledby="events-heading"
+    >
+
+      <div class="section-heading">
+
+        <div>
+
+          <span class="eyebrow">
+            UPCOMING
+          </span>
+
+          <h2 id="events-heading">
+            What's happening at our school
+          </h2>
+
+        </div>
+
+      </div>
+
+      <div
+        class="grid"
+        id="all-events"
+        aria-live="polite"
+      >
+
+        <p>
+          Loading events...
+        </p>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <!-- =========================
+       FOOTER
+  ========================== -->
+
+  <footer class="footer">
+
+    <div>
+
+      <strong id="footer-school-name">
+        YOUR SCHOOL
+      </strong>
+
+      <p>
+        Learning today. Leading tomorrow.
+      </p>
+
+    </div>
+
+
+    <div>
+
+      <strong>
+        Quick Links
+      </strong>
+
+      <a href="/">
+        Home
+      </a>
+
+      <a href="/about.html">
+        About
+      </a>
+
+      <a href="/academics.html">
+        Academics
+      </a>
+
+      <a href="/departments.html">
+        Departments
+      </a>
+
+      <a href="/news.html">
+        News
+      </a>
+
+      <a href="/events.html">
+        Events
+      </a>
+
+      <a href="/gallery.html">
+        Gallery
+      </a>
+
+    </div>
+
+
+    <div>
+
+      <strong>
+        Portals
+      </strong>
+
+      <a href="/student/login.html">
+        Student Portal
+      </a>
+
+      <a href="/alumni/">
+        Alumni
+      </a>
+
+      <a href="/admin.html">
+        Staff Login
+      </a>
+
+    </div>
+
+
+    <div>
+
+      <strong>
+        Contact
+      </strong>
+
+      <a href="/contact.html">
+        Contact Us
+      </a>
+
+      <a href="/student/login.html">
+        Student Portal
+      </a>
+
+    </div>
+
+
+    <small>
+      ©
+      <span id="year"></span>
+      <span id="footer-school-name-small">
+        Your School Name
+      </span>.
+      All rights reserved.
+    </small>
+
+  </footer>
+
+
+  <!-- =========================
+       PUBLIC WEBSITE JAVASCRIPT
+  ========================== -->
+
+  <script src="/js/main.js"></script>
+
+</body>
+</html>

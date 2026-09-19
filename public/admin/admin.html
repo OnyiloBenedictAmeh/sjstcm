@@ -1,0 +1,2768 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <title>
+    Administration | School Digital Platform
+  </title>
+
+  <link
+    rel="stylesheet"
+    href="/css/main.css"
+  >
+
+  <link
+    rel="stylesheet"
+    href="/css/admin.css"
+  >
+
+</head>
+
+
+<body class="admin-body">
+
+
+  <!-- =========================================================
+       MOBILE OVERLAY
+  ========================================================== -->
+
+  <div
+    class="sidebar-overlay"
+    id="sidebar-overlay"
+  ></div>
+
+
+
+  <!-- =========================================================
+       SIDEBAR
+  ========================================================== -->
+
+  <aside
+    class="admin-sidebar"
+    id="admin-sidebar"
+  >
+
+    <div class="admin-brand">
+
+      <div class="admin-brand-mark">
+        S
+      </div>
+
+      <div>
+        <strong>School</strong>
+        <span>Administration</span>
+      </div>
+
+    </div>
+
+
+    <nav class="admin-nav">
+
+      <p class="nav-label">
+        MAIN
+      </p>
+
+
+      <button
+        class="admin-nav-item active"
+        data-section="overview"
+        type="button"
+      >
+        <span class="nav-icon">⌂</span>
+        <span>Overview</span>
+      </button>
+
+
+      <button
+        class="admin-nav-item"
+        data-section="students"
+        type="button"
+      >
+        <span class="nav-icon">♙</span>
+        <span>Students</span>
+      </button>
+
+
+      <button
+        class="admin-nav-item"
+        data-section="academics"
+        type="button"
+      >
+        <span class="nav-icon">▣</span>
+        <span>Academics</span>
+      </button>
+
+
+      <p class="nav-label">
+        PEOPLE
+      </p>
+
+
+      <button
+        class="admin-nav-item"
+        data-section="alumni"
+        type="button"
+      >
+        <span class="nav-icon">♧</span>
+        <span>Alumni</span>
+      </button>
+
+
+      <button
+        class="admin-nav-item"
+        data-section="requests"
+        type="button"
+      >
+        <span class="nav-icon">↻</span>
+        <span>Update Requests</span>
+
+        <span
+          class="nav-badge"
+          id="request-count"
+        >
+          0
+        </span>
+
+      </button>
+
+
+      <p class="nav-label">
+        CONTENT
+      </p>
+
+
+      <button
+        class="admin-nav-item"
+        data-section="news"
+        type="button"
+      >
+        <span class="nav-icon">▤</span>
+        <span>News</span>
+      </button>
+
+
+      <button
+        class="admin-nav-item"
+        data-section="events"
+        type="button"
+      >
+        <span class="nav-icon">◷</span>
+        <span>Events</span>
+      </button>
+
+
+      <button
+        class="admin-nav-item"
+        data-section="gallery"
+        type="button"
+      >
+        <span class="nav-icon">▧</span>
+        <span>Gallery</span>
+      </button>
+
+
+      <button
+        class="admin-nav-item"
+        data-section="departments"
+        type="button"
+      >
+        <span class="nav-icon">⌂</span>
+        <span>Departments</span>
+      </button>
+
+
+      <p class="nav-label">
+        COMMUNICATION
+      </p>
+
+
+      <button
+        class="admin-nav-item"
+        data-section="messages"
+        type="button"
+      >
+        <span class="nav-icon">✉</span>
+        <span>Messages</span>
+
+        <span
+          class="nav-badge"
+          id="message-count"
+        >
+          0
+        </span>
+
+      </button>
+
+    </nav>
+
+
+    <div class="sidebar-bottom">
+
+      <div class="admin-user-mini">
+
+        <div
+          class="avatar"
+          id="sidebar-avatar"
+        >
+          A
+        </div>
+
+        <div class="admin-user-mini-info">
+
+          <strong id="sidebar-user-name">
+            Administrator
+          </strong>
+
+          <span id="sidebar-user-role">
+            ADMIN
+          </span>
+
+        </div>
+
+      </div>
+
+
+      <button
+        class="sidebar-logout"
+        id="logout"
+        type="button"
+      >
+
+        <span>↪</span>
+
+        Sign out
+
+      </button>
+
+    </div>
+
+  </aside>
+
+
+
+  <!-- =========================================================
+       MAIN AREA
+  ========================================================== -->
+
+  <div class="admin-shell">
+
+
+    <!-- =======================================================
+         TOPBAR
+    ======================================================== -->
+
+    <header class="admin-topbar">
+
+      <div class="topbar-left">
+
+        <button
+          type="button"
+          class="mobile-menu-button"
+          id="mobile-menu-button"
+          aria-label="Open navigation"
+        >
+          ☰
+        </button>
+
+
+        <div>
+
+          <p class="topbar-kicker">
+            ADMINISTRATION
+          </p>
+
+          <h1 id="page-title">
+            Overview
+          </h1>
+
+        </div>
+
+      </div>
+
+
+      <div class="topbar-right">
+
+        <div class="topbar-user">
+
+          <div
+            class="avatar"
+            id="topbar-avatar"
+          >
+            A
+          </div>
+
+          <div>
+
+            <strong id="topbar-user-name">
+              Administrator
+            </strong>
+
+            <span id="topbar-user-email">
+              Loading...
+            </span>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </header>
+
+
+
+    <!-- =======================================================
+         MAIN CONTENT
+    ======================================================== -->
+
+    <main class="admin-content">
+
+
+      <!-- =====================================================
+           OVERVIEW
+      ====================================================== -->
+
+      <section
+        class="admin-section active"
+        id="section-overview"
+      >
+
+        <div class="section-intro">
+
+          <div>
+
+            <span class="eyebrow">
+              SCHOOL OPERATIONS
+            </span>
+
+            <h2>
+              Dashboard overview
+            </h2>
+
+            <p>
+              Monitor students, school content, alumni activity
+              and incoming communication from one place.
+            </p>
+
+          </div>
+
+
+          <button
+            class="button refresh-button"
+            id="refresh-dashboard"
+            type="button"
+          >
+            ↻ Refresh
+          </button>
+
+        </div>
+
+
+        <div
+          class="stats-grid"
+          id="stats"
+        >
+
+          <article class="stat-card loading-card">
+            <span>Loading...</span>
+          </article>
+
+          <article class="stat-card loading-card">
+            <span>Loading...</span>
+          </article>
+
+          <article class="stat-card loading-card">
+            <span>Loading...</span>
+          </article>
+
+          <article class="stat-card loading-card">
+            <span>Loading...</span>
+          </article>
+
+          <article class="stat-card loading-card">
+            <span>Loading...</span>
+          </article>
+
+          <article class="stat-card loading-card">
+            <span>Loading...</span>
+          </article>
+
+        </div>
+
+
+        <div class="dashboard-grid">
+
+
+          <article class="panel quick-panel">
+
+            <div class="panel-header">
+
+              <div>
+
+                <span class="panel-kicker">
+                  QUICK ACCESS
+                </span>
+
+                <h3>
+                  Common tasks
+                </h3>
+
+              </div>
+
+            </div>
+
+
+            <div class="quick-actions">
+
+
+              <button
+                class="quick-action"
+                data-section-target="students"
+                type="button"
+              >
+
+                <span class="quick-icon">
+                  ♙
+                </span>
+
+                <span>
+
+                  <strong>
+                    Students
+                  </strong>
+
+                  <small>
+                    View and manage students
+                  </small>
+
+                </span>
+
+              </button>
+
+
+              <button
+                class="quick-action"
+                data-section-target="academics"
+                type="button"
+              >
+
+                <span class="quick-icon">
+                  ▣
+                </span>
+
+                <span>
+
+                  <strong>
+                    Academics
+                  </strong>
+
+                  <small>
+                    Classes and school sessions
+                  </small>
+
+                </span>
+
+              </button>
+
+
+              <button
+                class="quick-action"
+                data-section-target="news"
+                type="button"
+              >
+
+                <span class="quick-icon">
+                  ▤
+                </span>
+
+                <span>
+
+                  <strong>
+                    News
+                  </strong>
+
+                  <small>
+                    Publish school news
+                  </small>
+
+                </span>
+
+              </button>
+
+
+              <button
+                class="quick-action"
+                data-section-target="messages"
+                type="button"
+              >
+
+                <span class="quick-icon">
+                  ✉
+                </span>
+
+                <span>
+
+                  <strong>
+                    Messages
+                  </strong>
+
+                  <small>
+                    Review enquiries
+                  </small>
+
+                </span>
+
+              </button>
+
+
+            </div>
+
+          </article>
+
+
+
+          <article class="panel system-panel">
+
+            <div class="panel-header">
+
+              <div>
+
+                <span class="panel-kicker">
+                  SESSION
+                </span>
+
+                <h3>
+                  Administrator account
+                </h3>
+
+              </div>
+
+            </div>
+
+
+            <div class="account-summary">
+
+
+              <div class="account-summary-row">
+
+                <span>
+                  Name
+                </span>
+
+                <strong id="account-name">
+                  Loading...
+                </strong>
+
+              </div>
+
+
+              <div class="account-summary-row">
+
+                <span>
+                  Email
+                </span>
+
+                <strong id="account-email">
+                  Loading...
+                </strong>
+
+              </div>
+
+
+              <div class="account-summary-row">
+
+                <span>
+                  Role
+                </span>
+
+                <strong id="account-role">
+                  Loading...
+                </strong>
+
+              </div>
+
+
+              <div class="account-summary-row">
+
+                <span>
+                  Session
+                </span>
+
+                <strong class="status-online">
+                  Authenticated
+                </strong>
+
+              </div>
+
+
+            </div>
+
+          </article>
+
+
+        </div>
+
+      </section>
+
+
+
+      <!-- =====================================================
+           STUDENTS
+      ====================================================== -->
+
+      <section
+        class="admin-section"
+        id="section-students"
+      >
+
+        <div class="section-intro">
+
+          <div>
+
+            <span class="eyebrow">
+              STUDENT MANAGEMENT
+            </span>
+
+            <h2>
+              Students
+            </h2>
+
+            <p>
+              Search the student directory, add students and
+              update existing student information.
+            </p>
+
+          </div>
+
+
+          <button
+            class="button"
+            id="add-student-button"
+            type="button"
+          >
+            + Add Student
+          </button>
+
+        </div>
+
+
+        <article class="panel">
+
+          <div class="toolbar">
+
+            <div class="search-box">
+
+              <span>⌕</span>
+
+              <input
+                type="search"
+                id="student-search"
+                placeholder="Search by student ID, first name or last name..."
+              >
+
+            </div>
+
+
+            <button
+              class="button secondary"
+              id="refresh-students"
+              type="button"
+            >
+              ↻ Refresh
+            </button>
+
+          </div>
+
+
+          <div class="table-wrap">
+
+            <table class="data-table">
+
+              <thead>
+
+                <tr>
+
+                  <th>
+                    Student ID
+                  </th>
+
+                  <th>
+                    Student
+                  </th>
+
+                  <th>
+                    Status
+                  </th>
+
+                  <th>
+                    Current Class
+                  </th>
+
+                  <th>
+                    Session
+                  </th>
+
+                  <th>
+                    Actions
+                  </th>
+
+                </tr>
+
+              </thead>
+
+
+              <tbody id="students-table-body">
+
+                <tr>
+
+                  <td
+                    colspan="6"
+                    class="table-state"
+                  >
+                    Loading students...
+                  </td>
+
+                </tr>
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        </article>
+
+      </section>
+
+
+
+      <!-- =====================================================
+           ACADEMICS
+      ====================================================== -->
+
+      <section
+        class="admin-section"
+        id="section-academics"
+      >
+
+        <div class="section-heading">
+
+          <div>
+
+            <span class="eyebrow">
+              ACADEMICS
+            </span>
+
+            <h2>
+              Classes & Sessions
+            </h2>
+
+            <p class="muted">
+              Manage classes, class photographs, students
+              and academic sessions.
+            </p>
+
+          </div>
+
+
+          <button
+            class="button"
+            id="add-class-btn"
+            type="button"
+          >
+            + Create Class
+          </button>
+
+        </div>
+
+
+
+        <!-- ===================================================
+             CLASSES
+        ==================================================== -->
+
+        <div class="admin-subsection">
+
+          <div class="subsection-heading">
+
+            <div>
+
+              <h3>
+                Classes
+              </h3>
+
+              <p class="muted">
+                Select a class to view its students.
+              </p>
+
+            </div>
+
+
+            <input
+              type="search"
+              id="class-search"
+              class="admin-search"
+              placeholder="Search classes..."
+            >
+
+          </div>
+
+
+          <div
+            id="classes-grid"
+            class="classes-grid"
+          >
+
+            <div class="empty">
+              Loading classes...
+            </div>
+
+          </div>
+
+        </div>
+
+
+
+        <!-- ===================================================
+             SELECTED CLASS / ALMANAC
+        ==================================================== -->
+
+        <div
+          id="class-detail-panel"
+          class="class-detail-panel"
+          hidden
+        >
+
+          <div class="class-detail-header">
+
+            <button
+              type="button"
+              class="button secondary"
+              id="close-class-detail"
+            >
+              ← Back to Classes
+            </button>
+
+
+            <div class="class-detail-actions">
+
+              <button
+                type="button"
+                class="button secondary"
+                id="edit-class-btn"
+              >
+                Edit Class
+              </button>
+
+
+              <button
+                type="button"
+                class="button"
+                id="add-class-student-btn"
+              >
+                + Add Student
+              </button>
+
+            </div>
+
+          </div>
+
+
+          <div id="class-detail-content"></div>
+
+        </div>
+
+
+
+        <!-- ===================================================
+             SESSIONS
+        ==================================================== -->
+
+        <div class="admin-subsection sessions-section">
+
+          <div class="subsection-heading">
+
+            <div>
+
+              <h3>
+                Academic Sessions
+              </h3>
+
+              <p class="muted">
+                Manage the school's academic sessions.
+              </p>
+
+            </div>
+
+          </div>
+
+
+          <div id="sessions-list">
+
+            <div class="empty">
+              Loading sessions...
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+
+      <!-- =====================================================
+           ALUMNI
+      ====================================================== -->
+
+      <section
+        class="admin-section"
+        id="section-alumni"
+      >
+
+        <div class="section-intro">
+
+          <div>
+
+            <span class="eyebrow">
+              FORMER STUDENTS
+            </span>
+
+            <h2>
+              Alumni
+            </h2>
+
+            <p>
+              Browse publicly listed alumni profiles and filter
+              them by graduation year.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <article class="panel">
+
+          <div class="toolbar">
+
+            <div class="search-box">
+
+              <span>⌕</span>
+
+              <input
+                type="search"
+                id="alumni-search"
+                placeholder="Search alumni..."
+              >
+
+            </div>
+
+
+            <select
+              id="alumni-year-filter"
+              class="select-control"
+              title="Filter alumni by graduation year"
+            >
+
+              <option value="">
+                All graduation years
+              </option>
+
+            </select>
+
+
+            <button
+              class="button secondary"
+              id="refresh-alumni"
+              type="button"
+            >
+              ↻ Refresh
+            </button>
+
+          </div>
+
+
+          <div
+            id="alumni-list"
+            class="people-grid"
+          >
+
+            <div class="list-loading">
+              Loading alumni...
+            </div>
+
+          </div>
+
+        </article>
+
+      </section>
+
+
+
+      <!-- =====================================================
+           UPDATE REQUESTS
+      ====================================================== -->
+
+      <section
+        class="admin-section"
+        id="section-requests"
+      >
+
+        <div class="section-intro">
+
+          <div>
+
+            <span class="eyebrow">
+              ALUMNI SERVICES
+            </span>
+
+            <h2>
+              Update requests
+            </h2>
+
+            <p>
+              Review information submitted by alumni for
+              profile updates.
+            </p>
+
+          </div>
+
+
+          <button
+            class="button secondary"
+            id="refresh-requests"
+            type="button"
+          >
+            ↻ Refresh
+          </button>
+
+        </div>
+
+
+        <article class="panel">
+
+          <div
+            id="requests-list"
+            class="request-list"
+          >
+
+            <div class="list-loading">
+              Loading update requests...
+            </div>
+
+          </div>
+
+        </article>
+
+
+        <div class="info-banner">
+
+          <strong>
+            Approval workflow
+          </strong>
+
+          <p>
+            The current backend provides retrieval of update
+            requests, but it does not yet expose an approve/reject
+            endpoint.
+          </p>
+
+        </div>
+
+      </section>
+
+
+
+      <!-- =====================================================
+           NEWS
+      ====================================================== -->
+
+      <section
+        class="admin-section"
+        id="section-news"
+      >
+
+        <div class="section-intro">
+
+          <div>
+
+            <span class="eyebrow">
+              SCHOOL CONTENT
+            </span>
+
+            <h2>
+              News
+            </h2>
+
+            <p>
+              View existing news articles and publish new
+              school news.
+            </p>
+
+          </div>
+
+
+          <button
+            class="button"
+            id="new-news-button"
+            type="button"
+          >
+            + New News
+          </button>
+
+        </div>
+
+
+        <article
+          class="panel hidden"
+          id="news-form-panel"
+        >
+
+          <div class="panel-header">
+
+            <div>
+
+              <span class="panel-kicker">
+                CREATE
+              </span>
+
+              <h3>
+                Publish school news
+              </h3>
+
+            </div>
+
+
+            <button
+              class="icon-button"
+              id="close-news-form"
+              type="button"
+            >
+              ×
+            </button>
+
+          </div>
+
+
+          <form
+            id="news-form"
+            class="admin-form"
+          >
+
+            <div class="form-grid">
+
+
+              <label>
+
+                <span>
+                  Title
+                </span>
+
+                <input
+                  name="title"
+                  required
+                >
+
+              </label>
+
+
+              <label>
+
+                <span>
+                  Slug
+                  <small>
+                    (optional)
+                  </small>
+                </span>
+
+                <input
+                  name="slug"
+                  placeholder="Automatically generated if empty"
+                >
+
+              </label>
+
+
+            </div>
+
+
+            <label>
+
+              <span>
+                Excerpt
+              </span>
+
+              <textarea
+                name="excerpt"
+                rows="3"
+              ></textarea>
+
+            </label>
+
+
+            <label>
+
+              <span>
+                Content
+              </span>
+
+              <textarea
+                name="content"
+                rows="8"
+                required
+              ></textarea>
+
+            </label>
+
+
+            <div class="form-grid">
+
+
+              <label>
+
+                <span>
+                  Image URL
+                </span>
+
+                <input
+                  name="imageUrl"
+                  type="url"
+                  placeholder="https://..."
+                >
+
+              </label>
+
+
+              <label>
+
+                <span>
+                  Published
+                </span>
+
+                <select name="isPublished">
+
+                  <option value="false">
+                    Draft
+                  </option>
+
+                  <option value="true">
+                    Published
+                  </option>
+
+                </select>
+
+              </label>
+
+
+            </div>
+
+
+            <div class="form-actions">
+
+              <button
+                type="button"
+                class="button secondary"
+                id="cancel-news"
+              >
+                Cancel
+              </button>
+
+
+              <button
+                class="button"
+                type="submit"
+              >
+                Publish / Save
+              </button>
+
+            </div>
+
+
+            <p
+              class="form-status"
+              id="news-form-status"
+            ></p>
+
+          </form>
+
+        </article>
+
+
+
+        <article class="panel">
+
+          <div class="panel-header">
+
+            <div>
+
+              <span class="panel-kicker">
+                ARTICLES
+              </span>
+
+              <h3>
+                News archive
+              </h3>
+
+            </div>
+
+
+            <button
+              class="icon-button"
+              id="refresh-news"
+              type="button"
+            >
+              ↻
+            </button>
+
+          </div>
+
+
+          <div
+            id="news-list"
+            class="content-list"
+          >
+
+            <div class="list-loading">
+              Loading news...
+            </div>
+
+          </div>
+
+        </article>
+
+      </section>
+
+
+
+      <!-- =====================================================
+           EVENTS
+      ====================================================== -->
+
+      <section
+        class="admin-section"
+        id="section-events"
+      >
+
+        <div class="section-intro">
+
+          <div>
+
+            <span class="eyebrow">
+              SCHOOL CALENDAR
+            </span>
+
+            <h2>
+              Events
+            </h2>
+
+            <p>
+              View upcoming and previous school events.
+            </p>
+
+          </div>
+
+
+          <button
+            class="button"
+            id="new-event-button"
+            type="button"
+          >
+            + New Event
+          </button>
+
+        </div>
+
+
+        <article
+          class="panel hidden"
+          id="event-form-panel"
+        >
+
+          <div class="panel-header">
+
+            <div>
+
+              <span class="panel-kicker">
+                CREATE
+              </span>
+
+              <h3>
+                Add school event
+              </h3>
+
+            </div>
+
+
+            <button
+              class="icon-button"
+              id="close-event-form"
+              type="button"
+            >
+              ×
+            </button>
+
+          </div>
+
+
+          <form
+            id="event-form"
+            class="admin-form"
+          >
+
+            <label>
+
+              <span>
+                Title
+              </span>
+
+              <input
+                name="title"
+                required
+              >
+
+            </label>
+
+
+            <label>
+
+              <span>
+                Description
+              </span>
+
+              <textarea
+                name="description"
+                rows="4"
+              ></textarea>
+
+            </label>
+
+
+            <div class="form-grid">
+
+
+              <label>
+
+                <span>
+                  Location
+                </span>
+
+                <input name="location">
+
+              </label>
+
+
+              <label>
+
+                <span>
+                  Starts
+                </span>
+
+                <input
+                  name="startsAt"
+                  type="datetime-local"
+                  required
+                >
+
+              </label>
+
+
+            </div>
+
+
+            <label>
+
+              <span>
+                Ends
+                <small>
+                  (optional)
+                </small>
+              </span>
+
+              <input
+                name="endsAt"
+                type="datetime-local"
+              >
+
+            </label>
+
+
+            <label>
+
+              <span>
+                Image URL
+                <small>
+                  (optional)
+                </small>
+              </span>
+
+              <input
+                name="imageUrl"
+                type="url"
+              >
+
+            </label>
+
+
+            <div class="form-actions">
+
+              <button
+                type="button"
+                class="button secondary"
+                id="cancel-event"
+              >
+                Cancel
+              </button>
+
+
+              <button
+                class="button"
+                type="submit"
+              >
+                Create Event
+              </button>
+
+            </div>
+
+
+            <p
+              class="form-status"
+              id="event-form-status"
+            ></p>
+
+          </form>
+
+        </article>
+
+
+
+        <article class="panel">
+
+          <div class="panel-header">
+
+            <div>
+
+              <span class="panel-kicker">
+                CALENDAR
+              </span>
+
+              <h3>
+                Events
+              </h3>
+
+            </div>
+
+
+            <button
+              class="icon-button"
+              id="refresh-events"
+              type="button"
+            >
+              ↻
+            </button>
+
+          </div>
+
+
+          <div
+            id="events-list"
+            class="content-list"
+          >
+
+            <div class="list-loading">
+              Loading events...
+            </div>
+
+          </div>
+
+        </article>
+
+      </section>
+
+
+
+      <!-- =====================================================
+           GALLERY
+      ====================================================== -->
+
+      <section
+        class="admin-section"
+        id="section-gallery"
+      >
+
+        <div class="section-intro">
+
+          <div>
+
+            <span class="eyebrow">
+              MEDIA
+            </span>
+
+            <h2>
+              Gallery
+            </h2>
+
+            <p>
+              Manage the images currently available in the
+              school gallery.
+            </p>
+
+          </div>
+
+
+          <button
+            class="button"
+            id="new-gallery-button"
+            type="button"
+          >
+            + Add Photo
+          </button>
+
+        </div>
+
+
+        <article
+          class="panel hidden"
+          id="gallery-form-panel"
+        >
+
+          <div class="panel-header">
+
+            <div>
+
+              <span class="panel-kicker">
+                CREATE
+              </span>
+
+              <h3>
+                Add gallery photo
+              </h3>
+
+            </div>
+
+
+            <button
+              class="icon-button"
+              id="close-gallery-form"
+              type="button"
+            >
+              ×
+            </button>
+
+          </div>
+
+
+          <form
+            id="gallery-form"
+            class="admin-form"
+          >
+
+            <div class="form-grid">
+
+
+              <label>
+
+                <span>
+                  Image URL
+                </span>
+
+                <input
+                  name="imageUrl"
+                  type="url"
+                  required
+                >
+
+              </label>
+
+
+              <label>
+
+                <span>
+                  Title
+                </span>
+
+                <input name="title">
+
+              </label>
+
+
+            </div>
+
+
+            <label>
+
+              <span>
+                Caption
+              </span>
+
+              <textarea
+                name="caption"
+                rows="4"
+              ></textarea>
+
+            </label>
+
+
+            <div class="form-actions">
+
+              <button
+                type="button"
+                class="button secondary"
+                id="cancel-gallery"
+              >
+                Cancel
+              </button>
+
+
+              <button
+                class="button"
+                type="submit"
+              >
+                Add Photo
+              </button>
+
+            </div>
+
+
+            <p
+              class="form-status"
+              id="gallery-form-status"
+            ></p>
+
+          </form>
+
+        </article>
+
+
+
+        <article class="panel">
+
+          <div class="panel-header">
+
+            <div>
+
+              <span class="panel-kicker">
+                MEDIA LIBRARY
+              </span>
+
+              <h3>
+                Gallery
+              </h3>
+
+            </div>
+
+
+            <button
+              class="icon-button"
+              id="refresh-gallery"
+              type="button"
+            >
+              ↻
+            </button>
+
+          </div>
+
+
+          <div
+            id="gallery-list"
+            class="admin-gallery"
+          >
+
+            <div class="list-loading">
+              Loading gallery...
+            </div>
+
+          </div>
+
+        </article>
+
+      </section>
+
+
+
+      <!-- =====================================================
+           DEPARTMENTS
+      ====================================================== -->
+
+      <section
+        class="admin-section"
+        id="section-departments"
+      >
+
+        <div class="section-intro">
+
+          <div>
+
+            <span class="eyebrow">
+              SCHOOL STRUCTURE
+            </span>
+
+            <h2>
+              Departments
+            </h2>
+
+            <p>
+              View the departments currently configured for
+              the school.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <article class="panel">
+
+          <div class="panel-header">
+
+            <div>
+
+              <span class="panel-kicker">
+                DIRECTORY
+              </span>
+
+              <h3>
+                Departments
+              </h3>
+
+            </div>
+
+
+            <button
+              class="icon-button"
+              id="refresh-departments"
+              type="button"
+            >
+              ↻
+            </button>
+
+          </div>
+
+
+          <div
+            id="departments-list"
+            class="department-grid"
+          >
+
+            <div class="list-loading">
+              Loading departments...
+            </div>
+
+          </div>
+
+        </article>
+
+
+        <div class="info-banner">
+
+          <strong>
+            Department editing
+          </strong>
+
+          <p>
+            The current backend exposes department retrieval
+            through <code>/api/departments</code>, but does not
+            yet expose an administrative create/edit/delete API.
+          </p>
+
+        </div>
+
+      </section>
+
+
+
+      <!-- =====================================================
+           MESSAGES
+      ====================================================== -->
+
+      <section
+        class="admin-section"
+        id="section-messages"
+      >
+
+        <div class="section-intro">
+
+          <div>
+
+            <span class="eyebrow">
+              COMMUNICATION
+            </span>
+
+            <h2>
+              Messages
+            </h2>
+
+            <p>
+              Review enquiries submitted through the school
+              website.
+            </p>
+
+          </div>
+
+
+          <button
+            class="button secondary"
+            id="refresh-messages"
+            type="button"
+          >
+            ↻ Refresh
+          </button>
+
+        </div>
+
+
+        <article class="panel">
+
+          <div
+            id="messages-list"
+            class="message-list"
+          >
+
+            <div class="list-loading">
+              Loading messages...
+            </div>
+
+          </div>
+
+        </article>
+
+      </section>
+
+    </main>
+
+  </div>
+
+
+
+  <!-- =========================================================
+       EDIT STUDENT MODAL
+  ========================================================== -->
+
+  <div
+    class="modal-backdrop hidden"
+    id="student-modal"
+  >
+
+    <div class="modal">
+
+
+      <div class="modal-header">
+
+        <div>
+
+          <span
+            class="panel-kicker"
+            id="student-modal-kicker"
+          >
+            STUDENT
+          </span>
+
+          <h2 id="student-modal-title">
+            Edit student
+          </h2>
+
+        </div>
+
+
+        <button
+          class="icon-button"
+          id="close-student-modal"
+          type="button"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <form
+        id="student-form"
+        class="admin-form"
+      >
+
+        <input
+          type="hidden"
+          name="id"
+          id="student-id"
+        >
+
+
+        <div class="form-grid">
+
+
+          <label>
+
+            <span>
+              Student ID
+            </span>
+
+            <input
+              name="studentId"
+              id="student-student-id"
+              required
+              disabled
+            >
+
+          </label>
+
+
+          <label>
+
+            <span>
+              Status
+            </span>
+
+            <select
+              name="status"
+              id="student-status"
+            >
+
+              <option value="ACTIVE">
+                Active
+              </option>
+
+              <option value="GRADUATED">
+                Graduated
+              </option>
+
+              <option value="ALUMNI">
+                Alumni
+              </option>
+
+              <option value="INACTIVE">
+                Inactive
+              </option>
+
+            </select>
+
+          </label>
+
+
+        </div>
+
+
+        <div class="form-grid three">
+
+
+          <label>
+
+            <span>
+              First name
+            </span>
+
+            <input
+              name="firstName"
+              id="student-first-name"
+              required
+            >
+
+          </label>
+
+
+          <label>
+
+            <span>
+              Middle name
+            </span>
+
+            <input
+              name="middleName"
+              id="student-middle-name"
+            >
+
+          </label>
+
+
+          <label>
+
+            <span>
+              Last name
+            </span>
+
+            <input
+              name="lastName"
+              id="student-last-name"
+              required
+            >
+
+          </label>
+
+
+        </div>
+
+
+        <div class="form-grid">
+
+
+          <label>
+
+            <span>
+              Email
+            </span>
+
+            <input
+              name="email"
+              id="student-email"
+              type="email"
+            >
+
+          </label>
+
+
+          <label>
+
+            <span>
+              Phone
+            </span>
+
+            <input
+              name="phone"
+              id="student-phone"
+              type="tel"
+            >
+
+          </label>
+
+
+        </div>
+
+
+        <div class="form-grid">
+
+
+          <label>
+
+            <span>
+              Gender
+            </span>
+
+            <input
+              name="gender"
+              id="student-gender"
+            >
+
+          </label>
+
+
+          <label>
+
+            <span>
+              Photo URL
+            </span>
+
+            <input
+              name="photoUrl"
+              id="student-photo-url"
+              type="url"
+            >
+
+          </label>
+
+
+        </div>
+
+
+        <label>
+
+          <span>
+            Address
+          </span>
+
+          <textarea
+            name="address"
+            id="student-address"
+            rows="3"
+          ></textarea>
+
+        </label>
+
+
+        <div class="form-actions">
+
+
+          <button
+            type="button"
+            class="button secondary"
+            id="cancel-student"
+          >
+            Cancel
+          </button>
+
+
+          <button
+            class="button"
+            type="submit"
+          >
+            Save Changes
+          </button>
+
+
+        </div>
+
+
+        <p
+          class="form-status"
+          id="student-form-status"
+        ></p>
+
+      </form>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- =========================================================
+       ADD STUDENT MODAL
+  ========================================================== -->
+
+  <div
+    class="modal-backdrop hidden"
+    id="add-student-modal"
+  >
+
+    <div class="modal">
+
+
+      <div class="modal-header">
+
+        <div>
+
+          <span class="panel-kicker">
+            STUDENT MANAGEMENT
+          </span>
+
+          <h2>
+            Add student
+          </h2>
+
+        </div>
+
+
+        <button
+          class="icon-button"
+          id="close-add-student"
+          type="button"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+
+      <form
+        id="add-student-form"
+        class="admin-form"
+      >
+
+
+        <!-- STUDENT ID + STATUS -->
+
+        <div class="form-grid">
+
+
+          <label>
+
+            <span>
+              Student ID
+            </span>
+
+            <input
+              name="studentId"
+              required
+            >
+
+          </label>
+
+
+          <label>
+
+            <span>
+              Status
+            </span>
+
+            <select name="status">
+
+              <option value="ACTIVE">
+                Active
+              </option>
+
+              <option value="INACTIVE">
+                Inactive
+              </option>
+
+              <option value="GRADUATED">
+                Graduated
+              </option>
+
+              <option value="ALUMNI">
+                Alumni
+              </option>
+
+            </select>
+
+          </label>
+
+
+        </div>
+
+
+
+        <!-- STUDENT NAME -->
+
+        <div class="form-grid three">
+
+
+          <label>
+
+            <span>
+              First name
+            </span>
+
+            <input
+              name="firstName"
+              required
+            >
+
+          </label>
+
+
+          <label>
+
+            <span>
+              Middle name
+            </span>
+
+            <input name="middleName">
+
+          </label>
+
+
+          <label>
+
+            <span>
+              Last name
+            </span>
+
+            <input
+              name="lastName"
+              required
+            >
+
+          </label>
+
+
+        </div>
+
+
+
+        <!-- CONTACT -->
+
+        <div class="form-grid">
+
+
+          <label>
+
+            <span>
+              Email
+            </span>
+
+            <input
+              name="email"
+              type="email"
+            >
+
+          </label>
+
+
+          <label>
+
+            <span>
+              Phone
+            </span>
+
+            <input
+              name="phone"
+              type="tel"
+            >
+
+          </label>
+
+
+        </div>
+
+
+
+        <!-- =================================================
+             STUDENT PHOTOGRAPH
+        ================================================== -->
+
+        <div class="photo-upload-field">
+
+
+          <label for="student-photo">
+
+            <span>
+              Student Photograph
+            </span>
+
+          </label>
+
+
+          <span class="photo-upload-help">
+
+            Take a photograph with the phone camera
+            or choose an existing photograph.
+
+          </span>
+
+
+          <input
+            type="file"
+            id="student-photo"
+            name="photo"
+            accept="image/jpeg,image/png,image/webp"
+            capture="environment"
+          >
+
+
+          <div
+            id="student-photo-preview"
+            class="student-photo-preview"
+          >
+
+            <span>
+              📷
+            </span>
+
+            <small>
+              No photograph selected
+            </small>
+
+          </div>
+
+
+        </div>
+
+
+
+        <!-- CLASS + SESSION -->
+
+        <div class="form-grid">
+
+
+          <label>
+
+            <span>
+              Class
+            </span>
+
+            <select
+              name="classId"
+              id="new-student-class"
+            >
+
+              <option value="">
+                No class
+              </option>
+
+            </select>
+
+          </label>
+
+
+          <label>
+
+            <span>
+              Session
+            </span>
+
+            <select
+              name="sessionId"
+              id="new-student-session"
+            >
+
+              <option value="">
+                No session
+              </option>
+
+            </select>
+
+          </label>
+
+
+        </div>
+
+
+
+        <!-- ACTIONS -->
+
+        <div class="form-actions">
+
+
+          <button
+            type="button"
+            class="button secondary"
+            id="cancel-add-student"
+          >
+            Cancel
+          </button>
+
+
+          <button
+            class="button"
+            type="submit"
+          >
+            Create Student
+          </button>
+
+
+        </div>
+
+
+        <p
+          class="form-status"
+          id="add-student-status"
+        ></p>
+
+
+      </form>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- =========================================================
+       STUDENT PROFILE / ALMANAC MODAL
+  ========================================================== -->
+
+  <div
+    id="student-profile-modal"
+    class="student-profile-modal"
+    hidden
+  >
+
+    <div class="student-profile-modal-backdrop"></div>
+
+
+    <div
+      class="student-profile-modal-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="student-profile-title"
+    >
+
+
+      <button
+        type="button"
+        class="student-profile-close"
+        id="student-profile-close"
+        aria-label="Close student profile"
+      >
+        ×
+      </button>
+
+
+      <div id="student-profile-content">
+
+        <!-- Filled dynamically by admin.js -->
+
+      </div>
+
+
+    </div>
+
+  </div>
+
+
+
+  <!-- =========================================================
+       CLASS CREATE / EDIT MODAL
+  ========================================================== -->
+
+  <div
+    class="modal"
+    id="class-modal"
+    hidden
+  >
+
+    <div
+      class="modal-backdrop"
+      data-close-class-modal
+    ></div>
+
+
+    <div class="modal-card">
+
+
+      <div class="modal-header">
+
+        <div>
+
+          <span class="eyebrow">
+            ACADEMICS
+          </span>
+
+          <h2 id="class-modal-title">
+            Create Class
+          </h2>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="modal-close"
+          data-close-class-modal
+          aria-label="Close"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+
+      <form
+        id="class-form"
+        class="admin-form"
+      >
+
+
+        <input
+          type="hidden"
+          id="class-id"
+        >
+
+
+        <label>
+
+          <span>
+            Class Name
+          </span>
+
+          <input
+            id="class-name"
+            type="text"
+            placeholder="JSS 1"
+            required
+          >
+
+        </label>
+
+
+        <label>
+
+          <span>
+            Level
+          </span>
+
+          <input
+            id="class-level"
+            type="text"
+            placeholder="Junior Secondary"
+          >
+
+        </label>
+
+
+        <label>
+
+          <span>
+            Class Teacher
+          </span>
+
+          <input
+            id="class-teacher"
+            type="text"
+            placeholder="Mrs. Johnson"
+          >
+
+        </label>
+
+
+        <label>
+
+          <span>
+            Description
+          </span>
+
+          <textarea
+            id="class-description"
+            rows="4"
+            placeholder="Class description..."
+          ></textarea>
+
+        </label>
+
+
+        <div class="form-actions">
+
+
+          <button
+            type="button"
+            class="button secondary"
+            data-close-class-modal
+          >
+            Cancel
+          </button>
+
+
+          <button
+            type="submit"
+            class="button"
+          >
+            Save Class
+          </button>
+
+
+        </div>
+
+
+        <p
+          id="class-form-status"
+          class="form-status"
+        ></p>
+
+
+      </form>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- =========================================================
+       TOAST
+  ========================================================== -->
+
+  <div
+    class="toast"
+    id="toast"
+  ></div>
+
+
+
+  <!-- =========================================================
+       JAVASCRIPT
+  ========================================================== -->
+
+  <script src="/js/admin.js"></script>
+
+
+</body>
+
+</html>

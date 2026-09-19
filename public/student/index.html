@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <meta
+    name="description"
+    content="Student portal dashboard for Your School Name."
+  >
+
+  <meta
+    name="theme-color"
+    content="#0f172a"
+  >
+
+  <title>
+    Student Dashboard | Your School Name
+  </title>
+
+  <link
+    rel="icon"
+    type="image/png"
+    href="/images/favicon.png"
+  >
+
+  <link
+    rel="stylesheet"
+    href="/css/main.css"
+  >
+
+  <link
+    rel="stylesheet"
+    href="/css/responsive.css"
+  >
+</head>
+
+<body>
+
+  <!-- =========================
+       STUDENT PORTAL HEADER
+  ========================== -->
+
+  <header class="site-header">
+
+    <a
+      href="/"
+      class="brand"
+      id="school-name"
+      aria-label="School homepage"
+    >
+      YOUR SCHOOL
+    </a>
+
+    <nav aria-label="Student portal navigation">
+
+      <a href="/">
+        School Website
+      </a>
+
+      <button
+        type="button"
+        id="logout"
+        class="button button-small"
+      >
+        Sign out
+      </button>
+
+    </nav>
+
+  </header>
+
+
+  <!-- =========================
+       STUDENT DASHBOARD
+  ========================== -->
+
+  <main class="page">
+
+    <!-- WELCOME -->
+
+    <section class="page-header">
+
+      <span class="eyebrow">
+        STUDENT PORTAL
+      </span>
+
+      <h1 id="name">
+        Loading…
+      </h1>
+
+      <p class="lead">
+        Welcome to your student dashboard. Here you can
+        view your profile, class information and academic
+        history.
+      </p>
+
+    </section>
+
+
+    <!-- =========================
+         PROFILE
+    ========================== -->
+
+    <section
+      class="section"
+      aria-labelledby="profile-heading"
+    >
+
+      <div class="section-heading">
+
+        <div>
+
+          <span class="eyebrow">
+            MY PROFILE
+          </span>
+
+          <h2 id="profile-heading">
+            Student information
+          </h2>
+
+        </div>
+
+      </div>
+
+
+      <div
+        class="grid"
+        id="profile"
+      >
+
+        <div class="card">
+          <p>Loading profile…</p>
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =========================
+         CLASS / ALMANAC
+    ========================== -->
+
+    <section
+      class="section"
+      aria-labelledby="class-heading"
+    >
+
+      <div class="section-heading">
+
+        <div>
+
+          <span class="eyebrow">
+            MY CLASS
+          </span>
+
+          <h2 id="class-heading">
+            Class & classmates
+          </h2>
+
+          <p class="lead">
+            View your current class and classmates.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div
+        class="card"
+        id="student-class"
+      >
+
+        <p>
+          Your class information will appear here.
+        </p>
+
+      </div>
+
+    </section>
+
+
+    <!-- =========================
+         ACADEMIC HISTORY
+    ========================== -->
+
+    <section
+      class="section"
+      aria-labelledby="records-heading"
+    >
+
+      <div class="section-heading">
+
+        <div>
+
+          <span class="eyebrow">
+            ACADEMIC RECORDS
+          </span>
+
+          <h2 id="records-heading">
+            Academic history
+          </h2>
+
+          <p class="lead">
+            Review your academic performance and records
+            across school sessions.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div
+        class="card"
+        id="records"
+      >
+
+        <p>
+          Loading academic records…
+        </p>
+
+      </div>
+
+    </section>
+
+
+    <!-- =========================
+         PORTAL HELP
+    ========================== -->
+
+    <section class="cta">
+
+      <div>
+
+        <span class="eyebrow">
+          NEED HELP?
+        </span>
+
+        <h2>
+          Have a question about your account?
+        </h2>
+
+        <p>
+          Contact the school if you need assistance with
+          your student information or portal access.
+        </p>
+
+      </div>
+
+      <a
+        class="button"
+        href="/contact.html"
+      >
+        Contact School
+      </a>
+
+    </section>
+
+  </main>
+
+
+  <!-- =========================
+       FOOTER
+  ========================== -->
+
+  <footer class="footer">
+
+    <div>
+
+      <strong id="footer-school-name">
+        YOUR SCHOOL
+      </strong>
+
+      <p>
+        Learning today. Leading tomorrow.
+      </p>
+
+    </div>
+
+
+    <div>
+
+      <strong>
+        Student Portal
+      </strong>
+
+      <a href="/student/dashboard.html">
+        Dashboard
+      </a>
+
+      <a href="/">
+        School Website
+      </a>
+
+      <a href="/contact.html">
+        Contact School
+      </a>
+
+    </div>
+
+
+    <small>
+
+      ©
+      <span id="year"></span>
+
+      <span id="footer-school-name-small">
+        Your School Name
+      </span>.
+
+      All rights reserved.
+
+    </small>
+
+  </footer>
+
+
+  <!-- =========================
+       STUDENT JAVASCRIPT
+  ========================== -->
+
+  <script src="/js/student.js"></script>
+
+</body>
+
+</html>

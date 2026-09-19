@@ -1,0 +1,290 @@
+/* =========================================================
+   SCHOOL PLATFORM — RESPONSIVE STYLES
+   ========================================================= */
+
+
+/* =========================================================
+   TABLET / SMALL LAPTOP
+   ========================================================= */
+
+@media (max-width: 1050px) {
+
+  .site-header {
+    padding: 0 5%;
+  }
+
+  .site-header nav {
+    gap: 14px;
+    font-size: 0.86rem;
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .gallery {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+}
+
+
+/* =========================================================
+   MOBILE NAVIGATION
+   ========================================================= */
+
+@media (max-width: 900px) {
+
+  .site-header {
+    height: 68px;
+  }
+
+  .menu-toggle {
+    display: block;
+  }
+
+  .site-header nav {
+    display: none;
+
+    position: absolute;
+
+    top: 68px;
+    left: 0;
+    right: 0;
+
+    background: #fff;
+
+    padding: 18px 7% 24px;
+
+    flex-direction: column;
+    align-items: stretch;
+
+    gap: 0;
+
+    border-bottom: 1px solid var(--line);
+
+    box-shadow:
+      0 15px 30px rgba(20, 33, 61, 0.08);
+  }
+
+  /*
+    Support both class names so the navigation
+    remains compatible with existing main.js.
+  */
+
+  .site-header nav.open,
+  .site-header nav.is-open {
+    display: flex;
+  }
+
+  .site-header nav a {
+    padding: 11px 0;
+  }
+
+  .site-header nav .nav-button {
+    text-align: center;
+    margin-top: 8px;
+  }
+
+
+  /* HERO */
+
+  .hero {
+    min-height: 560px;
+    padding: 60px 7%;
+  }
+
+
+  /* CONTENT */
+
+  .intro,
+  .content-grid {
+    grid-template-columns: 1fr;
+  }
+
+
+  .grid,
+  .gallery {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+
+  .section,
+  .page {
+    padding: 65px 7%;
+  }
+
+
+  /* CTA */
+
+  .cta {
+    padding: 55px 7%;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: flex-start;
+  }
+
+
+  /* FOOTER */
+
+  .footer {
+    grid-template-columns: 1fr;
+  }
+
+  .footer div:nth-child(2),
+  .footer div:nth-child(3),
+  .footer div:nth-child(4) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+  }
+
+  .footer small {
+    grid-column: auto;
+  }
+
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+  /* TYPOGRAPHY */
+
+  h1 {
+    font-size: clamp(2.3rem, 13vw, 3.5rem);
+  }
+
+  h2 {
+    font-size: clamp(1.7rem, 9vw, 2.4rem);
+  }
+
+  .hero h1 {
+    font-size: 2.8rem;
+  }
+
+
+  /* LAYOUT */
+
+  .grid,
+  .gallery {
+    grid-template-columns: 1fr;
+  }
+
+  .section-heading {
+    display: block;
+  }
+
+  .section-heading > a {
+    display: inline-block;
+    margin-top: 8px;
+  }
+
+
+  /* SPACING */
+
+  .section,
+  .page {
+    padding: 50px 5%;
+  }
+
+  .hero {
+    padding: 55px 5%;
+    min-height: 520px;
+  }
+
+
+  /* CARDS */
+
+  .card,
+  .content-grid article {
+    padding: 22px;
+  }
+
+
+  /* BUTTONS */
+
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .actions .button {
+    width: 100%;
+    text-align: center;
+  }
+
+
+  /* CTA */
+
+  .cta {
+    padding: 50px 5%;
+  }
+
+
+  /* PAGE NAVIGATION */
+
+  .page-back {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+
+  /* AUTH */
+
+  .auth-page {
+    padding: 20px 15px;
+  }
+
+  .auth-card {
+    padding: 22px;
+  }
+
+
+  /* FOOTER */
+
+  .footer {
+    padding: 35px 5%;
+  }
+
+  .footer div:nth-child(2),
+  .footer div:nth-child(3),
+  .footer div:nth-child(4) {
+    flex-direction: column;
+    gap: 7px;
+  }
+
+}
+
+
+/* =========================================================
+   VERY SMALL PHONES
+   ========================================================= */
+
+@media (max-width: 380px) {
+
+  h1 {
+    font-size: 2.2rem;
+  }
+
+  .hero h1 {
+    font-size: 2.4rem;
+  }
+
+  .button,
+  .nav-button {
+    padding: 11px 15px;
+  }
+
+  .card,
+  .content-grid article,
+  .auth-card {
+    padding: 18px;
+  }
+
+}
