@@ -193,7 +193,7 @@ function nav() {
         href="/"
         aria-label="School homepage"
       >
-        YOUR SCHOOL
+        St. Joseph's Science and Technical College, Makurdi
       </a>
 
 
@@ -1208,13 +1208,13 @@ async function loadSchoolSettings() {
     if (
       document.title &&
       document.title.includes(
-        "Your School"
+        "St. Joseph's Science and Technical College, Makurdi"
       )
     ) {
 
       document.title =
         document.title.replace(
-          "Your School",
+          "St. Joseph's Science and Technical College, Makurdi",
           schoolName
         );
 
