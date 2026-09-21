@@ -1,1 +1,61 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin Login</title><link rel="stylesheet" href="/css/main.css"></head><body><main class="auth-page"><form class="auth-card" id="login-form"><span class="eyebrow">ADMINISTRATION</span><h1>Staff / Admin Login</h1><input type="email" name="email" placeholder="Email" required><input type="password" name="password" placeholder="Password" required><button class="button">Sign in</button><p id="login-status"></p><a href="/">← Back to website</a></form></main><script src="/js/portal.js"></script></body></html>
+```html
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Admin Login</title>
+
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/responsive.css">
+</head>
+
+<body>
+
+  <main class="auth-page">
+
+    <form class="auth-card" id="login-form">
+
+      <span class="eyebrow">ADMINISTRATION</span>
+
+      <h1>Staff / Admin Login</h1>
+
+      <input
+        type="email"
+        name="email"
+        placeholder="Email"
+        autocomplete="email"
+        required
+      >
+
+      <input
+        type="password"
+        name="password"
+        placeholder="Password"
+        autocomplete="current-password"
+        required
+      >
+
+      <button
+        type="submit"
+        class="button"
+      >
+        Sign in
+      </button>
+
+      <p id="login-status" role="status" aria-live="polite"></p>
+
+      <a href="../index.html">
+        ← Back to website
+      </a>
+
+    </form>
+
+  </main>
+
+  <script src="../js/portal.js"></script>
+
+</body>
+</html>
+```
