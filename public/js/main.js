@@ -1129,7 +1129,7 @@ async function loadSchoolSettings() {
         settings?.school_name ||
         settings?.SCHOOL_NAME ||
         settings?.schoolName ||
-        "Your School Name"
+        "St. Joseph's Science and Technical College, Makurdi"
       ).trim();
 
 

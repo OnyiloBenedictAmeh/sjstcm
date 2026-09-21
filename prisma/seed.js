@@ -13,7 +13,7 @@ async function ensureUser(email, role, password) {
 }
 
 async function main() {
-  const schoolName = process.env.SCHOOL_NAME || "Your School Name";
+  const schoolName = process.env.SCHOOL_NAME || "St. Joseph's Science and Technical College, Makurdi";
 
   const adminPassword = "ChangeMe123!";
   await ensureUser("admin@example.com", "ADMIN", adminPassword);

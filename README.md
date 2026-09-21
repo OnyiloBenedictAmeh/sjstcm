@@ -205,7 +205,7 @@ You'll see something like:
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/school_platform?schema=public"
 JWT_SECRET="replace-with-a-long-random-secret"
 PORT=3000
-SCHOOL_NAME="Your School Name"
+SCHOOL_NAME="St. Joseph's Science and Technical College, Makurdi"
 NODE_ENV="development"
 
 Change it to match your PostgreSQL password.
