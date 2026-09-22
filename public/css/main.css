@@ -838,36 +838,18 @@ select:focus-visible {
   height: 34px;
   display: inline-grid;
   place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.38);
   border-radius: 6px;
-  color: #fff;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.86);
   font-size: 0.72rem;
   font-weight: 800;
   line-height: 1;
   transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
 
-.footer-socials a[data-social="facebook"] {
-  background: #1877f2;
-}
-
-.footer-socials a[data-social="x"] {
-  background: #111;
-}
-
-.footer-socials a[data-social="youtube"] {
-  background: #ff0000;
-}
-
-.footer-socials a[data-social="whatsapp"] {
-  background: #25d366;
-}
-
-.footer-socials a[data-social="instagram"] {
-  background: #c13584;
-}
-
 .footer-socials a:hover {
+  background: transparent;
   border-color: #fff;
   color: #fff;
   transform: translateY(-2px);
