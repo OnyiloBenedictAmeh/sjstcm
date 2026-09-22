@@ -834,16 +834,16 @@ select:focus-visible {
 }
 
 .footer-socials a {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   display: inline-grid;
   place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.24);
   border-radius: 6px;
   background: transparent;
-  color: rgba(255, 255, 255, 0.86);
-  font-size: 0.72rem;
-  font-weight: 800;
+  color: #fff;
+  font-size: 1.15rem;
+  font-weight: 400;
   line-height: 1;
   transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
@@ -1095,6 +1095,15 @@ tr:last-child td {
   .footer {
     grid-template-columns: 1fr;
     padding: 35px 5%;
+  }
+
+  .footer > div {
+    align-items: center;
+    text-align: center;
+  }
+
+  .footer > div:first-child {
+    max-width: none;
   }
 
   .footer small {
