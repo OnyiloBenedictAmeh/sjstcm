@@ -111,43 +111,8 @@ p {
 }
 
 /* =========================================
-   SCHOOL HEADER
-   ========================================= */
-
-.site-header {
-  min-height: 76px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-
-  padding: 8px 4%;
-  border-bottom: 1px solid var(--border);
-
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-
-  background: var(--bg);
-}
-
-
-/* =========================================
    BRAND / LOGO
    ========================================= */
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-
-  flex: 0 1 auto;
-  min-width: 0;
-
-  color: inherit;
-  text-decoration: none;
-}
-
 
 /* Logo image */
 
@@ -209,233 +174,6 @@ p {
 }
 
 
-/* =========================================
-   NAVIGATION
-   ========================================= */
-
-.site-header nav {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-
-  gap: 14px;
-
-  flex: 1 1 auto;
-  min-width: 0;
-
-  font-size: 0.86rem;
-  font-weight: 600;
-}
-
-.site-header nav a {
-  white-space: nowrap;
-}
-
-
-/* =========================================
-   NAV BUTTON
-   ========================================= */
-
-.site-header .nav-button {
-  flex-shrink: 0;
-}
-
-
-/* =========================================
-   HAMBURGER
-   ========================================= */
-
-.menu-toggle {
-  display: none;
-
-  border: 0;
-  background: transparent;
-
-  font-size: 1.7rem;
-  line-height: 1;
-
-  cursor: pointer;
-
-  padding: 8px;
-}
-
-
-/* =========================================
-   MEDIUM DESKTOP
-   ========================================= */
-
-@media (max-width: 1200px) {
-
-  .site-header {
-    gap: 16px;
-    padding-left: 3%;
-    padding-right: 3%;
-  }
-
-  .brand-full {
-    font-size: 0.82rem;
-  }
-
-  .school-logo {
-    width: 48px;
-    height: 48px;
-  }
-
-  .site-header nav {
-    gap: 10px;
-    font-size: 0.78rem;
-  }
-
-}
-
-
-/* =========================================
-   TABLET / SMALL DESKTOP
-   ========================================= */
-
-@media (max-width: 1050px) {
-
-  .brand-full {
-    display: none;
-  }
-
-  .brand-short {
-    display: block;
-  }
-
-  .brand-location {
-    font-size: 0.65rem;
-  }
-
-  .site-header nav {
-    gap: 9px;
-    font-size: 0.76rem;
-  }
-
-}
-
-
-/* =========================================
-   MOBILE NAVIGATION
-   ========================================= */
-
-@media (max-width: 900px) {
-
-  .site-header {
-    min-height: 68px;
-    padding: 7px 5%;
-  }
-
-  .school-logo {
-    width: 46px;
-    height: 46px;
-  }
-
-  .brand-short {
-    font-size: 1rem;
-  }
-
-  .menu-toggle {
-    display: block;
-    flex-shrink: 0;
-  }
-
-  .site-header nav {
-    display: none;
-
-    position: absolute;
-
-    top: 100%;
-    left: 0;
-    right: 0;
-
-    flex-direction: column;
-    align-items: stretch;
-
-    gap: 0;
-
-    padding: 10px 5%;
-
-    background: var(--bg);
-
-    border-bottom: 1px solid var(--border);
-
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-  }
-
-  .site-header nav.active {
-    display: flex;
-  }
-
-  .site-header nav a {
-    display: block;
-
-    width: 100%;
-
-    padding: 12px 4px;
-
-    white-space: normal;
-  }
-
-  .site-header .nav-button {
-    margin-top: 8px;
-    text-align: center;
-  }
-
-}
-
-
-/* =========================================
-   SMALL MOBILE
-   ========================================= */
-
-@media (max-width: 500px) {
-
-  .site-header {
-    padding-left: 4%;
-    padding-right: 4%;
-  }
-
-  .school-logo {
-    width: 42px;
-    height: 42px;
-  }
-
-  .brand {
-    gap: 9px;
-  }
-
-  .brand-short {
-    font-size: 0.95rem;
-  }
-
-  .brand-location {
-    font-size: 0.58rem;
-  }
-
-}
-
-
-/* =========================================
-   VERY SMALL PHONES
-   ========================================= */
-
-@media (max-width: 360px) {
-
-  .school-logo {
-    width: 38px;
-    height: 38px;
-  }
-
-  .brand-short {
-    font-size: 0.88rem;
-  }
-
-  .brand-location {
-    display: none;
-  }
-
-}
 .site-header {
   height: 76px;
 
@@ -450,26 +188,39 @@ p {
 
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 1000;
 
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
 }
 
 .brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  flex: 0 1 auto;
+  min-width: 0;
+
   font-weight: 900;
   letter-spacing: 0.06em;
-  white-space: nowrap;
 }
 
 .site-header nav {
   display: flex;
+  justify-content: flex-end;
+
+  flex: 1 1 auto;
+  min-width: 0;
+
   gap: 20px;
   align-items: center;
   font-size: 0.92rem;
+  font-weight: 600;
 }
 
 .site-header nav a {
+  white-space: nowrap;
   transition:
     color 0.2s ease,
     opacity 0.2s ease;
@@ -499,6 +250,8 @@ p {
   line-height: 1;
 
   color: var(--ink);
+  cursor: pointer;
+  padding: 8px;
 }
 
 
@@ -1080,6 +833,18 @@ tr:last-child td {
 
 @media (max-width: 1050px) {
 
+  .brand-full {
+    display: none;
+  }
+
+  .brand-short {
+    display: block;
+  }
+
+  .brand-location {
+    font-size: 0.65rem;
+  }
+
   .site-header nav {
     gap: 13px;
     font-size: 0.86rem;
@@ -1107,6 +872,15 @@ tr:last-child td {
     display: block;
   }
 
+  .school-logo {
+    width: 46px;
+    height: 46px;
+  }
+
+  .brand-short {
+    font-size: 1rem;
+  }
+
   .site-header nav {
     position: absolute;
 
@@ -1130,6 +904,7 @@ tr:last-child td {
     box-shadow: 0 15px 30px rgba(20, 33, 61, 0.08);
   }
 
+  .site-header nav.open,
   .site-header nav.is-open {
     display: flex;
   }
@@ -1187,6 +962,18 @@ tr:last-child td {
     font-size: 1rem;
   }
 
+  .brand {
+    gap: 9px;
+  }
+
+  .brand-short {
+    font-size: 0.95rem;
+  }
+
+  .brand-location {
+    font-size: 0.58rem;
+  }
+
   .grid,
   .gallery {
     grid-template-columns: 1fr;
@@ -1234,6 +1021,24 @@ tr:last-child td {
   .footer div:nth-child(3),
   .footer div:nth-child(4) {
     gap: 6px;
+  }
+
+}
+
+
+@media (max-width: 360px) {
+
+  .school-logo {
+    width: 38px;
+    height: 38px;
+  }
+
+  .brand-short {
+    font-size: 0.88rem;
+  }
+
+  .brand-location {
+    display: none;
   }
 
 }
