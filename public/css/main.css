@@ -3,13 +3,15 @@
    ========================================================= */
 
 :root {
-  --ink: #14213d;
-  --muted: #657087;
+  --ink: #082b59;
+  --muted: #5f6f82;
   --surface: #ffffff;
-  --soft: #f3f6fa;
-  --line: #e5e9f0;
-  --accent: #1f5eff;
-  --accent-dark: #1748c7;
+  --soft: #f4f8fc;
+  --line: #d9e4ef;
+  --accent: #0057b8;
+  --accent-dark: #003f8f;
+  --gold: #f7c900;
+  --gold-soft: #fff4bf;
   --radius: 18px;
   --shadow: 0 12px 35px rgba(20, 33, 61, 0.08);
   --max-width: 1400px;
@@ -754,42 +756,65 @@ select:focus-visible {
    ========================================================= */
 
 .footer {
-  padding: 45px 8%;
+  padding: 56px 8% 24px;
 
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(240px, 1.5fr) repeat(3, minmax(140px, 1fr));
 
-  gap: 20px;
+  gap: 36px 28px;
 
-  border-top: 1px solid var(--line);
+  border-top: 5px solid var(--gold);
 
-  background: #fff;
+  background: var(--ink);
+  color: #fff;
+}
+
+.footer > div:first-child {
+  max-width: 320px;
+}
+
+.footer > div:not(:first-child) {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 9px;
 }
 
 .footer strong {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 7px;
+  color: var(--gold);
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .footer p {
-  color: var(--muted);
+  color: rgba(255, 255, 255, 0.72);
 }
 
-.footer div:nth-child(2),
-.footer div:nth-child(3),
-.footer div:nth-child(4) {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.footer > div:first-child strong {
+  color: #fff;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.footer a {
+  color: rgba(255, 255, 255, 0.82);
+  transition: color 0.2s ease, transform 0.2s ease;
 }
 
 .footer a:hover {
-  color: var(--accent);
+  color: var(--gold);
+  transform: translateX(2px);
 }
 
 .footer small {
   grid-column: 1 / -1;
-  color: var(--muted);
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.58);
 }
 
 
@@ -941,7 +966,7 @@ tr:last-child td {
   }
 
   .footer {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     padding: 40px 6%;
   }
 

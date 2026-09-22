@@ -176,12 +176,105 @@ async function api(url, options = {}) {
    SITE NAVIGATION
    ========================================================= */
 
+function bindMobileNavigation(header) {
+
+  const toggle =
+    $(".menu-toggle", header);
+
+  const navigation =
+    $("nav", header);
+
+
+  if (!toggle || !navigation) {
+    return;
+  }
+
+
+  toggle.addEventListener(
+    "click",
+    () => {
+
+      const isOpen =
+        navigation.classList.toggle(
+          "open"
+        );
+
+
+      navigation.classList.toggle(
+        "is-open",
+        isOpen
+      );
+
+
+      toggle.setAttribute(
+        "aria-expanded",
+        String(isOpen)
+      );
+
+
+      toggle.setAttribute(
+        "aria-label",
+        isOpen
+          ? "Close navigation menu"
+          : "Open navigation menu"
+      );
+
+    }
+  );
+
+
+  $$(`a`, navigation).forEach(
+    link => {
+
+      link.addEventListener(
+        "click",
+        () => {
+
+          navigation.classList.remove(
+            "open",
+            "is-open"
+          );
+
+
+          toggle.setAttribute(
+            "aria-expanded",
+            "false"
+          );
+
+
+          toggle.setAttribute(
+            "aria-label",
+            "Open navigation menu"
+          );
+
+        }
+      );
+
+    }
+  );
+
+}
+
+
 function nav() {
 
   const container =
     $("#site-nav");
 
-  if (!container) return;
+  if (!container) {
+
+    const existingHeader =
+      $(".site-header");
+
+
+    if (existingHeader) {
+      bindMobileNavigation(existingHeader);
+    }
+
+
+    return;
+
+  }
 
   const sitePrefix = "";
 
@@ -262,86 +355,17 @@ function nav() {
   const header =
     $(".site-header", container);
 
-  const toggle =
-    $(".menu-toggle", header);
+
+  if (!header) {
+    return;
+  }
+
 
   const navigation =
     $("nav", header);
 
 
-  if (!toggle || !navigation) {
-    return;
-  }
-
-
-  /* -------------------------------------------------------
-     MOBILE MENU
-     ------------------------------------------------------- */
-
-  toggle.addEventListener(
-    "click",
-    () => {
-
-      const isOpen =
-        navigation.classList.toggle(
-          "open"
-        );
-
-
-      navigation.classList.toggle(
-        "is-open",
-        isOpen
-      );
-
-
-      toggle.setAttribute(
-        "aria-expanded",
-        String(isOpen)
-      );
-
-
-      toggle.setAttribute(
-        "aria-label",
-        isOpen
-          ? "Close navigation menu"
-          : "Open navigation menu"
-      );
-
-    }
-  );
-
-
-  /* -------------------------------------------------------
-     CLOSE MENU AFTER CLICKING A LINK
-     ------------------------------------------------------- */
-
-  $$("a", navigation).forEach(
-    link => {
-
-      link.addEventListener(
-        "click",
-        () => {
-
-          navigation.classList.remove(
-            "open",
-            "is-open"
-          );
-
-          toggle.setAttribute(
-            "aria-expanded",
-            "false"
-          );
-
-          toggle.setAttribute(
-            "aria-label",
-            "Open navigation menu"
-          );
-
-        }
-      );
-
-    }
-  );
+  bindMobileNavigation(header);
 
 
   /* -------------------------------------------------------
