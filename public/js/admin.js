@@ -178,7 +178,7 @@ async function api(url, options = {}) {
   if (response.status === 401) {
 
     window.location.href =
-      "/admin/login.html";
+      "admin/login.html";
 
     throw new Error(
       "Authentication required"
@@ -227,7 +227,7 @@ async function loadCurrentUser() {
   ) {
 
     window.location.href =
-      "/student/";
+      "student/index.html";
 
     return;
   }
@@ -1090,7 +1090,7 @@ $("#add-student-form")
         if (response.status === 401) {
 
           window.location.href =
-            "/admin/login.html";
+            "admin/login.html";
 
           return;
         }
@@ -2975,7 +2975,7 @@ async function uploadClassPhoto(
     ) {
 
       window.location.href =
-        "/admin/login.html";
+        "admin/login.html";
 
       return;
     }
@@ -4592,7 +4592,7 @@ $("#logout")
 
 
       window.location.href =
-        "/admin/login.html";
+        "admin/login.html";
 
     }
   );

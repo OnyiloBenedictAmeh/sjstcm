@@ -183,10 +183,7 @@ function nav() {
 
   if (!container) return;
 
-  const sitePrefix =
-    /\/(alumni|student|admin)\//.test(window.location.pathname)
-      ? "../"
-      : "";
+  const sitePrefix = "";
 
 
   container.innerHTML = `

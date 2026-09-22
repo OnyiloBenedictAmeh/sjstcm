@@ -84,7 +84,7 @@ async function load() {
     if (!authResponse.ok) {
 
       window.location.href =
-        "login.html";
+        "student/login.html";
 
       return;
 
@@ -107,7 +107,7 @@ async function load() {
     ) {
 
       window.location.href =
-        "../admin/admin.html";
+        "admin/admin.html";
 
       return;
 
@@ -132,7 +132,7 @@ async function load() {
     ) {
 
       window.location.href =
-        "login.html";
+        "student/login.html";
 
       return;
 
@@ -666,7 +666,7 @@ async function logout() {
   } finally {
 
     window.location.href =
-      "/";
+      "index.html";
 
   }
 
