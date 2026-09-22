@@ -841,7 +841,7 @@ select:focus-visible {
   border: 1px solid rgba(255, 255, 255, 0.24);
   border-radius: 6px;
   background: transparent;
-  color: #fff;
+  color: var(--gold);
   font-size: 1.15rem;
   font-weight: 400;
   line-height: 1;
@@ -850,8 +850,8 @@ select:focus-visible {
 
 .footer-socials a:hover {
   background: transparent;
-  border-color: #fff;
-  color: #fff;
+  border-color: rgba(247, 201, 0, 0.7);
+  color: var(--gold);
   transform: translateY(-2px);
 }
 
