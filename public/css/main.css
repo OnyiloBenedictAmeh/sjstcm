@@ -46,6 +46,25 @@ body {
   line-height: 1.65;
 }
 
+body:not(.admin-body)::before {
+  content: "";
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: min(48vw, 560px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  background: url("../assets/images/logo.png") center / contain no-repeat;
+  opacity: 0.045;
+  pointer-events: none;
+  z-index: 0;
+}
+
+body:not(.admin-body) > * {
+  position: relative;
+  z-index: 1;
+}
+
 img {
   max-width: 100%;
   display: block;
@@ -810,14 +829,48 @@ select:focus-visible {
 .footer-socials {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 14px;
+  gap: 8px;
   margin-top: 18px;
 }
 
 .footer-socials a {
-  color: var(--gold);
-  font-size: 0.82rem;
-  font-weight: 700;
+  width: 34px;
+  height: 34px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 6px;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.footer-socials a[data-social="facebook"] {
+  background: #1877f2;
+}
+
+.footer-socials a[data-social="x"] {
+  background: #111;
+}
+
+.footer-socials a[data-social="youtube"] {
+  background: #ff0000;
+}
+
+.footer-socials a[data-social="whatsapp"] {
+  background: #25d366;
+}
+
+.footer-socials a[data-social="instagram"] {
+  background: #c13584;
+}
+
+.footer-socials a:hover {
+  border-color: #fff;
+  color: #fff;
+  transform: translateY(-2px);
 }
 
 .footer a {

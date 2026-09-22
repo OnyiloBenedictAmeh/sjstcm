@@ -308,7 +308,7 @@ function nav() {
         aria-label="Open navigation menu"
         aria-expanded="false"
       >
-        <span>☰</span>
+        <i class="bx bx-menu" aria-hidden="true"></i>
       </button>
 
 
