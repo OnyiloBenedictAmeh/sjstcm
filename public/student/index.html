@@ -43,19 +43,44 @@
 
   <header class="site-header">
 
-    <a
-      href="index.html"
-      class="brand"
-      id="school-name"
-      aria-label="School homepage"
-    >
-      St. Joseph's Science and Technical College, Makurdi
+    <a class="brand" href="index.html" aria-label="St. Joseph's Science and Technical College, Makurdi">
+      <img
+        src="assets/images/logo.png"
+        alt="St. Joseph's Science and Technical College logo"
+        class="school-logo"
+      >
+
+      <span class="brand-text">
+        <span class="brand-short">SJSTC</span>
+        <span class="brand-full">St. Joseph's Science and Technical College</span>
+        <span class="brand-location">Makurdi</span>
+      </span>
     </a>
 
-    <nav aria-label="Student portal navigation">
+    <button
+      class="menu-toggle"
+      type="button"
+      aria-label="Open navigation"
+      aria-expanded="false"
+      aria-controls="main-navigation"
+    >
+      ☰
+    </button>
 
-      <a href="index.html">
-        School Website
+    <nav id="main-navigation" aria-label="Main navigation">
+
+      <a href="index.html">Home</a>
+      <a href="about.html">About</a>
+      <a href="academics.html">Academics</a>
+      <a href="departments.html">Departments</a>
+      <a href="news.html">News</a>
+      <a href="events.html">Events</a>
+      <a href="gallery.html">Gallery</a>
+      <a href="contact.html">Contact</a>
+      <a href="alumni/index.html">Alumni</a>
+
+      <a class="nav-button" href="student/login.html">
+        Student Portal
       </a>
 
       <button
@@ -270,6 +295,8 @@
 
     <div>
 
+      <img class="footer-logo" src="assets/images/logo.png" alt="St. Joseph's Science and Technical College logo">
+
       <strong id="footer-school-name">
         St. Joseph's Science and Technical College, Makurdi
       </strong>
@@ -277,6 +304,12 @@
       <p>
         Learning today. Leading tomorrow.
       </p>
+
+      <div class="footer-socials" aria-label="School social media links">
+        <a href="#" aria-label="Facebook" data-social="facebook">Facebook</a>
+        <a href="#" aria-label="Instagram" data-social="instagram">Instagram</a>
+        <a href="#" aria-label="YouTube" data-social="youtube">YouTube</a>
+      </div>
 
     </div>
 

@@ -773,6 +773,13 @@ select:focus-visible {
   max-width: 320px;
 }
 
+.footer-logo {
+  width: 58px;
+  height: 58px;
+  margin-bottom: 16px;
+  object-fit: contain;
+}
+
 .footer > div:not(:first-child) {
   display: flex;
   flex-direction: column;
@@ -798,6 +805,19 @@ select:focus-visible {
   font-size: 1rem;
   letter-spacing: 0.02em;
   text-transform: none;
+}
+
+.footer-socials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 18px;
+}
+
+.footer-socials a {
+  color: var(--gold);
+  font-size: 0.82rem;
+  font-weight: 700;
 }
 
 .footer a {
@@ -873,6 +893,10 @@ tr:last-child td {
   .site-header nav {
     gap: 13px;
     font-size: 0.86rem;
+  }
+
+  .footer {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .grid {
@@ -966,7 +990,7 @@ tr:last-child td {
   }
 
   .footer {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     padding: 40px 6%;
   }
 

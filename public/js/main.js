@@ -286,9 +286,19 @@ function nav() {
       <a
         class="brand"
         href="${sitePrefix}index.html"
-        aria-label="School homepage"
+        aria-label="St. Joseph's Science and Technical College, Makurdi"
       >
-        St. Joseph's Science and Technical College, Makurdi
+        <img
+          src="${sitePrefix}assets/images/logo.png"
+          alt="St. Joseph's Science and Technical College logo"
+          class="school-logo"
+        >
+
+        <span class="brand-text">
+          <span class="brand-short">SJSTC</span>
+          <span class="brand-full">St. Joseph's Science and Technical College</span>
+          <span class="brand-location">Makurdi</span>
+        </span>
       </a>
 
 
