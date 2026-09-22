@@ -183,6 +183,11 @@ function nav() {
 
   if (!container) return;
 
+  const sitePrefix =
+    /\/(alumni|student|admin)\//.test(window.location.pathname)
+      ? "../"
+      : "";
+
 
   container.innerHTML = `
 
@@ -190,7 +195,7 @@ function nav() {
 
       <a
         class="brand"
-        href="/"
+        href="${sitePrefix}index.html"
         aria-label="School homepage"
       >
         St. Joseph's Science and Technical College, Makurdi
@@ -209,43 +214,43 @@ function nav() {
 
       <nav aria-label="Main navigation">
 
-        <a href="/">Home</a>
+        <a href="${sitePrefix}index.html">Home</a>
 
-        <a href="/about.html">
+        <a href="${sitePrefix}about.html">
           About
         </a>
 
-        <a href="/academics.html">
+        <a href="${sitePrefix}academics.html">
           Academics
         </a>
 
-        <a href="/departments.html">
+        <a href="${sitePrefix}departments.html">
           Departments
         </a>
 
-        <a href="/news.html">
+        <a href="${sitePrefix}news.html">
           News
         </a>
 
-        <a href="/events.html">
+        <a href="${sitePrefix}events.html">
           Events
         </a>
 
-        <a href="/gallery.html">
+        <a href="${sitePrefix}gallery.html">
           Gallery
         </a>
 
-        <a href="/contact.html">
+        <a href="${sitePrefix}contact.html">
           Contact
         </a>
 
-        <a href="/alumni/">
+        <a href="${sitePrefix}alumni/index.html">
           Alumni
         </a>
 
         <a
           class="nav-button"
-          href="/student/login.html"
+          href="${sitePrefix}student/login.html"
         >
           Portal
         </a>
@@ -1066,7 +1071,7 @@ async function loadAlumni() {
               .map(year => `
                 <a
                   class="card"
-                  href="/alumni/profile.html?year=${encodeURIComponent(year)}"
+                  href="${sitePrefix}alumni/profile.html?year=${encodeURIComponent(year)}"
                 >
 
                   <h2>
