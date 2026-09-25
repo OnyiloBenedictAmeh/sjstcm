@@ -251,9 +251,12 @@ p {
   color: var(--accent);
 }
 
-.site-header nav a[aria-current="page"] {
-  color: var(--accent-dark);
-  font-weight: 800;
+.editable-placeholder {
+  color: var(--muted);
+  font-size: 0.95rem;
+  font-style: italic;
+  border-left: 2px solid var(--line);
+  padding-left: 12px;
 }
 
 .site-header nav a:focus-visible,

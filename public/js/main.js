@@ -616,6 +616,17 @@ async function loadNews() {
       error
     );
 
+    if (new URLSearchParams(window.location.search).has("article")) {
+      const articleContainer = $("#news-article");
+      if (articleContainer) {
+        articleContainer.hidden = false;
+        articleContainer.innerHTML = `${emptyCard("Article unavailable", "We couldn't load this article. Please try again later.")}<a class="text-link" href="news.html">Browse all news</a>`;
+      }
+      if (featured) featured.hidden = true;
+      if (allList) allList.hidden = true;
+      return;
+    }
+
 
     if (homeList) {
 
@@ -641,12 +652,6 @@ async function loadNews() {
         )
       );
 
-    }
-
-    const articleContainer = $("#news-article");
-    if (articleContainer && new URLSearchParams(window.location.search).has("article")) {
-      articleContainer.hidden = false;
-      articleContainer.innerHTML = `${emptyCard("Article unavailable", "We couldn't load this article. Please try again later.")}<a class="text-link" href="news.html">Browse all news</a>`;
     }
 
   }
