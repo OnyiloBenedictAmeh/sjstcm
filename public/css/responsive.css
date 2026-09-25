@@ -33,7 +33,7 @@
    MOBILE NAVIGATION
    ========================================================= */
 
-@media (max-width: 900px) {
+@media (max-width: 1120px) {
 
   .site-header {
     height: 68px;
@@ -115,10 +115,10 @@
   }
 
 
-    .footer {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 28px 22px;
-    }
+  .footer {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 28px 22px;
+  }
 
   /* CTA */
 
@@ -237,6 +237,15 @@
 
   .footer {
     padding: 35px 5%;
+  }
+
+  .gallery-viewer {
+    padding: 12px;
+  }
+
+  .contact-layout,
+  .contact-details {
+    grid-template-columns: 1fr;
   }
 
   .footer div:nth-child(2),

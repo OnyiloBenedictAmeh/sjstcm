@@ -722,6 +722,27 @@ document.addEventListener(
         }
       );
 
+      navigation.querySelectorAll("a[href]").forEach(link => {
+        link.addEventListener("click", () => {
+          navigation.classList.remove("open", "is-open");
+          menuToggle.setAttribute("aria-expanded", "false");
+          menuToggle.setAttribute("aria-label", "Open navigation");
+        });
+      });
+
+      document.addEventListener("keydown", event => {
+        if (event.key !== "Escape" || menuToggle.getAttribute("aria-expanded") !== "true") return;
+        navigation.classList.remove("open", "is-open");
+        menuToggle.setAttribute("aria-expanded", "false");
+        menuToggle.focus();
+      });
+
+      const currentPath = new URL(window.location.href).pathname.replace(/\/$/, "/index.html");
+      navigation.querySelectorAll("a[href]").forEach(link => {
+        const linkPath = new URL(link.href, document.baseURI).pathname.replace(/\/$/, "/index.html");
+        if (linkPath === currentPath) link.setAttribute("aria-current", "page");
+      });
+
     }
 
     load();

@@ -517,6 +517,8 @@ async function loadNews() {
 
   const allList =
     $("#all-news");
+  const featured =
+    $("#featured-news");
 
 
   if (!homeList && !allList) {
@@ -540,6 +542,7 @@ async function loadNews() {
     const requestedSlug = new URLSearchParams(window.location.search).get("article");
     const articleContainer = $("#news-article");
     if (articleContainer && requestedSlug) {
+      if (featured) featured.hidden = true;
       const listContainer = $("#all-news");
       if (listContainer) listContainer.hidden = true;
       const article = items.find(item => item.slug === requestedSlug || item.id === requestedSlug);
@@ -582,15 +585,24 @@ async function loadNews() {
 
     if (allList) {
 
+      if (featured && items.length && !requestedSlug) {
+        featured.innerHTML = `<div class="section-heading"><div><span class="eyebrow">FEATURED UPDATE</span></div></div>${newsCard(items[0])}`;
+      } else if (featured && !items.length) {
+        featured.innerHTML = emptyCard("News", "No news articles have been published yet.");
+      }
+
       setHTML(
         "#all-news",
-        items.length
+        items.length > (featured ? 1 : 0)
           ? items
+              .slice(featured ? 1 : 0)
               .map(newsCard)
               .join("")
+          : items.length && featured
+            ? `<p class="empty">More school updates will appear here.</p>`
           : emptyCard(
               "News",
-              "No news has been published yet."
+              "No news articles have been published yet."
             )
       );
 
@@ -619,6 +631,7 @@ async function loadNews() {
 
 
     if (allList) {
+      if (featured) featured.innerHTML = emptyCard("News", "News could not be loaded right now. Please try again later.");
 
       setHTML(
         "#all-news",
@@ -628,6 +641,12 @@ async function loadNews() {
         )
       );
 
+    }
+
+    const articleContainer = $("#news-article");
+    if (articleContainer && new URLSearchParams(window.location.search).has("article")) {
+      articleContainer.hidden = false;
+      articleContainer.innerHTML = `${emptyCard("Article unavailable", "We couldn't load this article. Please try again later.")}<a class="text-link" href="news.html">Browse all news</a>`;
     }
 
   }
@@ -720,15 +739,16 @@ async function loadEvents() {
         ? events
         : [];
 
-    const upcomingItems =
-      items.filter(event => {
-        const startsAt = new Date(event.startsAt);
-        return !Number.isNaN(startsAt.getTime()) &&
-          startsAt >= new Date();
-      });
+    const now = Date.now();
+    const upcomingItems = items.filter(event => {
+      const startsAt = new Date(event.startsAt).getTime();
+      const endsAt = event.endsAt ? new Date(event.endsAt).getTime() : startsAt;
+      return Number.isFinite(startsAt) && Number.isFinite(endsAt) && endsAt >= now;
+    });
     const pastItems = items.filter(event => {
-      const startsAt = new Date(event.startsAt);
-      return !Number.isNaN(startsAt.getTime()) && startsAt < new Date();
+      const startsAt = new Date(event.startsAt).getTime();
+      const endsAt = event.endsAt ? new Date(event.endsAt).getTime() : startsAt;
+      return Number.isFinite(startsAt) && Number.isFinite(endsAt) && endsAt < now;
     });
 
 
@@ -743,7 +763,7 @@ async function loadEvents() {
               .join("")
           : emptyCard(
               "Events",
-              "No upcoming events yet."
+          "No upcoming events yet."
             )
       );
 
@@ -858,11 +878,13 @@ function departmentCard(department) {
 
 async function loadDepartments() {
 
-  const container =
-    $("#departments-list");
+  const containers = [
+    $("#departments-list"),
+    $("#home-departments")
+  ].filter(Boolean);
 
 
-  if (!container) return;
+  if (!containers.length) return;
 
 
   try {
@@ -879,17 +901,12 @@ async function loadDepartments() {
         : [];
 
 
-    setHTML(
-      "#departments-list",
-      items.length
-        ? items
-            .map(departmentCard)
-            .join("")
-        : emptyCard(
-            "Departments",
-            "Department information is being updated."
-          )
-    );
+    containers.forEach(container => {
+      const visibleItems = container.id === "home-departments" ? items.slice(0, 3) : items;
+      container.innerHTML = visibleItems.length
+        ? visibleItems.map(departmentCard).join("")
+        : emptyCard("Departments", "Department information has not been published yet.");
+    });
 
 
   } catch (error) {
@@ -900,13 +917,9 @@ async function loadDepartments() {
     );
 
 
-    setHTML(
-      "#departments-list",
-      emptyCard(
-        "Departments",
-        "Department information could not be loaded."
-      )
-    );
+    containers.forEach(container => {
+      container.innerHTML = emptyCard("Departments", "Department information could not be loaded. Please try again later.");
+    });
 
   }
 
@@ -1458,6 +1471,8 @@ function setupContactForm() {
         );
 
 
+      if (!form.reportValidity()) return;
+
       if (status) {
 
         status.textContent =
@@ -1513,8 +1528,7 @@ function setupContactForm() {
         if (status) {
 
           status.textContent =
-            error.message ||
-            "Unable to send your message right now.";
+            "We couldn't send your message. Please try again later.";
 
         }
 
