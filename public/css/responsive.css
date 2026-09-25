@@ -33,10 +33,42 @@
    MOBILE NAVIGATION
    ========================================================= */
 
+@media (min-width: 1121px) and (max-width: 1300px) {
+  .site-header {
+    padding-left: 3.5%;
+    padding-right: 3.5%;
+  }
+
+  .site-header nav {
+    gap: 9px;
+    font-size: 0.8rem;
+  }
+
+  .site-header .brand-full {
+    max-width: 220px;
+    font-size: 0.84rem;
+  }
+}
+
 @media (max-width: 1120px) {
 
   .site-header {
     height: 68px;
+  }
+
+  .site-header .brand-full {
+    display: block;
+    max-width: 250px;
+    font-size: clamp(0.72rem, 1.5vw, 0.9rem);
+    white-space: normal;
+  }
+
+  .site-header .brand-short {
+    display: none;
+  }
+
+  .site-header .brand-location {
+    font-size: 0.72rem;
   }
 
   .menu-toggle {
@@ -78,6 +110,9 @@
   }
 
   .site-header nav a {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
     padding: 11px 0;
   }
 
@@ -237,6 +272,25 @@
 
   .footer {
     padding: 35px 5%;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 30px;
+  }
+
+  .footer > div:first-child {
+    max-width: none;
+  }
+
+  .footer > .footer-connect {
+    justify-content: flex-start;
+    gap: 14px;
+  }
+
+  .footer-connect > strong {
+    flex-basis: 100%;
+  }
+
+  .footer-socials {
+    gap: 8px;
   }
 
   .gallery-viewer {
@@ -283,4 +337,18 @@
     padding: 18px;
   }
 
+}
+
+@media (max-width: 480px) {
+  .site-header .brand-full {
+    display: none;
+  }
+
+  .site-header .brand-short {
+    display: block;
+  }
+
+  .site-header .brand-location {
+    font-size: 0.66rem;
+  }
 }

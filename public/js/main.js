@@ -176,94 +176,6 @@ async function api(url, options = {}) {
    SITE NAVIGATION
    ========================================================= */
 
-function bindMobileNavigation(header) {
-
-  const toggle =
-    $(".menu-toggle", header);
-
-  const navigation =
-    $("nav", header);
-
-
-  if (!toggle || !navigation) {
-    return;
-  }
-
-
-  toggle.addEventListener(
-    "click",
-    () => {
-
-      const isOpen =
-        navigation.classList.toggle(
-          "open"
-        );
-
-
-      navigation.classList.toggle(
-        "is-open",
-        isOpen
-      );
-
-
-      toggle.setAttribute(
-        "aria-expanded",
-        String(isOpen)
-      );
-
-
-      toggle.setAttribute(
-        "aria-label",
-        isOpen
-          ? "Close navigation menu"
-          : "Open navigation menu"
-      );
-
-    }
-  );
-
-
-  $$(`a`, navigation).forEach(
-    link => {
-
-      link.addEventListener(
-        "click",
-        () => {
-
-          navigation.classList.remove(
-            "open",
-            "is-open"
-          );
-
-
-          toggle.setAttribute(
-            "aria-expanded",
-            "false"
-          );
-
-
-          toggle.setAttribute(
-            "aria-label",
-            "Open navigation menu"
-          );
-
-        }
-      );
-
-    }
-  );
-
-  header.addEventListener("keydown", event => {
-    if (event.key !== "Escape" || toggle.getAttribute("aria-expanded") !== "true") return;
-    navigation.classList.remove("open", "is-open");
-    toggle.setAttribute("aria-expanded", "false");
-    toggle.setAttribute("aria-label", "Open navigation menu");
-    toggle.focus();
-  });
-
-}
-
-
 function markCurrentNavigationLink() {
   const currentPath = new URL(window.location.href).pathname.replace(/\/$/, "/index.html");
   $$("#main-navigation a[href]").forEach(link => {
@@ -279,20 +191,7 @@ function nav() {
   const container =
     $("#site-nav");
 
-  if (!container) {
-
-    const existingHeader =
-      $(".site-header");
-
-
-    if (existingHeader) {
-      bindMobileNavigation(existingHeader);
-    }
-
-
-    return;
-
-  }
+  if (!container) return;
 
   const sitePrefix = "";
 
@@ -395,7 +294,6 @@ function nav() {
     $("nav", header);
 
 
-  bindMobileNavigation(header);
 
 
   /* -------------------------------------------------------
