@@ -34,6 +34,42 @@ enum RequestStatus {
   REJECTED
 }
 
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  NEEDS_INFORMATION
+}
+
+enum StaffEmploymentStatus {
+  CURRENT
+  FORMER
+}
+
+enum PermissionAuditAction {
+  GRANTED
+  REVOKED
+}
+
+enum ArchiveMediaKind {
+  PROFILE_PHOTO
+  THEN_PHOTO
+  NOW_PHOTO
+  CLASS_GROUP_PHOTO
+  ARCHIVE_PHOTO
+  PRIVATE_EVIDENCE
+  ARCHIVE_DOCUMENT
+}
+
+enum HistoricalArchiveKind {
+  EVENT
+  STORY
+  MEMORY
+  HISTORICAL_NOTE
+  PHOTOGRAPH
+  DOCUMENT
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -43,6 +79,14 @@ model User {
   updatedAt    DateTime @updatedAt
   student      Student?
   alumni       Alumni?
+  staffProfile StaffProfile?
+  userPermissions UserPermission[] @relation("PermissionRecipient")
+  permissionsGranted UserPermission[] @relation("PermissionGrantor")
+  permissionAuditTarget PermissionAudit[] @relation("PermissionAuditTarget")
+  permissionAuditActor PermissionAudit[] @relation("PermissionAuditActor")
+  alumniReviews AlumniReview[] @relation("AlumniReviewReviewer")
+  staffReviews StaffReview[] @relation("StaffReviewReviewer")
+  createdArchiveItems HistoricalArchiveItem[]
 }
 
 model Student {
@@ -121,20 +165,237 @@ model AcademicRecord {
 }
 
 model Alumni {
-  id             String   @id @default(cuid())
-  studentId      String   @unique
-  graduationYear Int?
-  graduationClass String?
-  occupation     String?
-  company        String?
-  location       String?
-  bio            String?
-  photoUrl       String?
-  isPublic       Boolean  @default(true)
-  student        Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  user           User?    @relation(fields: [userId], references: [id])
-  userId         String?  @unique
-  updateRequests UpdateRequest[]
+  id                    String             @id @default(cuid())
+  alumniId              String             @unique @default(dbgenerated("generate_alumni_id()"))
+  studentId             String?            @unique
+  userId                String?            @unique
+  fullName              String
+  nameWhileAttending    String?
+  formerName            String?
+  dateOfBirth           DateTime?
+  gender                String?
+  phone                 String?
+  whatsapp              String?
+  entryYear             Int?
+  exitYear              Int?
+  approximatePeriod     String?
+  lastClassAttended     String?
+  departmentLabel       String?
+  house                 String?
+  graduationYear        Int?
+  graduationClass       String?
+  occupation            String?
+  company               String?
+  location              String?
+  bio                   String?
+  memories              String?
+  photoUrl              String?
+  verificationStatus    VerificationStatus @default(PENDING)
+  isPublic              Boolean            @default(false)
+  publicName            Boolean            @default(false)
+  publicFormerName      Boolean            @default(false)
+  publicSchoolHistory   Boolean            @default(false)
+  publicPhoto           Boolean            @default(false)
+  publicOccupation      Boolean            @default(false)
+  publicLocation        Boolean            @default(false)
+  publicBiography       Boolean            @default(false)
+  publicMemories        Boolean            @default(false)
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  student               Student?           @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  user                  User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  updateRequests        UpdateRequest[]
+  classMemberships      AlumniClassMembership[]
+  archiveMedia          ArchiveMedia[]
+  archiveItems          HistoricalArchiveItem[]
+  reviews               AlumniReview[]
+}
+
+model AlumniClassSet {
+  id                String                    @id @default(cuid())
+  displayName       String
+  entryYear         Int?
+  exitYear          Int?
+  approximatePeriod String?
+  notes             String?
+  isPublic          Boolean                   @default(false)
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+  members           AlumniClassMembership[]
+  archiveMedia      ArchiveMedia[]
+  archiveItems      HistoricalArchiveItem[]
+}
+
+model AlumniClassMembership {
+  id                String             @id @default(cuid())
+  alumniId          String
+  classSetId        String
+  lastClassAttended String?
+  departmentLabel   String?
+  house             String?
+  status            VerificationStatus @default(PENDING)
+  notes             String?
+  createdAt         DateTime           @default(now())
+  alumni            Alumni             @relation(fields: [alumniId], references: [id], onDelete: Cascade)
+  classSet          AlumniClassSet     @relation(fields: [classSetId], references: [id], onDelete: Cascade)
+
+  @@unique([alumniId, classSetId])
+  @@index([classSetId, status])
+}
+
+model StaffProfile {
+  id                 String               @id @default(cuid())
+  formerStaffId      String               @unique @default(dbgenerated("generate_former_staff_id()"))
+  userId             String?              @unique
+  fullName           String
+  formerName         String?
+  verificationStatus VerificationStatus   @default(PENDING)
+  employmentStatus   StaffEmploymentStatus @default(FORMER)
+  biography          String?
+  memories           String?
+  isPublic           Boolean              @default(false)
+  publicName         Boolean              @default(false)
+  publicServiceHistory Boolean             @default(false)
+  publicBiography    Boolean              @default(false)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  user               User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+  appointments       StaffAppointment[]
+  archiveMedia       ArchiveMedia[]
+  archiveItems       HistoricalArchiveItem[]
+  reviews            StaffReview[]
+}
+
+model StaffAppointment {
+  id                String       @id @default(cuid())
+  staffProfileId    String
+  position          String
+  departmentId      String?
+  departmentLabel   String?
+  subjects          String[]
+  startDate         DateTime?
+  endDate           DateTime?
+  startYear         Int?
+  endYear           Int?
+  approximatePeriod String?
+  historicalLabel   String?
+  isCurrent         Boolean      @default(false)
+  createdAt         DateTime     @default(now())
+  staffProfile      StaffProfile @relation(fields: [staffProfileId], references: [id], onDelete: Cascade)
+  department        Department?  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  @@index([staffProfileId, startYear])
+}
+
+model AlumniReview {
+  id             String             @id @default(cuid())
+  alumniId       String
+  reviewerId     String
+  previousStatus VerificationStatus?
+  newStatus      VerificationStatus
+  notes          String?
+  createdAt      DateTime           @default(now())
+  alumni         Alumni             @relation(fields: [alumniId], references: [id], onDelete: Restrict)
+  reviewer       User               @relation("AlumniReviewReviewer", fields: [reviewerId], references: [id], onDelete: Restrict)
+
+  @@index([alumniId, createdAt])
+}
+
+model StaffReview {
+  id             String             @id @default(cuid())
+  staffProfileId String
+  reviewerId     String
+  previousStatus VerificationStatus?
+  newStatus      VerificationStatus
+  notes          String?
+  createdAt      DateTime           @default(now())
+  staffProfile   StaffProfile       @relation(fields: [staffProfileId], references: [id], onDelete: Restrict)
+  reviewer       User               @relation("StaffReviewReviewer", fields: [reviewerId], references: [id], onDelete: Restrict)
+
+  @@index([staffProfileId, createdAt])
+}
+
+model HistoricalArchiveItem {
+  id                String                @id @default(cuid())
+  kind              HistoricalArchiveKind
+  title             String
+  description       String?
+  exactDate         DateTime?
+  approximatePeriod String?
+  verificationStatus VerificationStatus   @default(PENDING)
+  isPublic          Boolean               @default(false)
+  alumniId          String?
+  staffProfileId    String?
+  classSetId        String?
+  createdById       String?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  alumni            Alumni?               @relation(fields: [alumniId], references: [id], onDelete: SetNull)
+  staffProfile      StaffProfile?         @relation(fields: [staffProfileId], references: [id], onDelete: SetNull)
+  classSet          AlumniClassSet?       @relation(fields: [classSetId], references: [id], onDelete: SetNull)
+  createdBy         User?                 @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  media             ArchiveMedia[]
+}
+
+model ArchiveMedia {
+  id             String           @id @default(cuid())
+  storageKey     String           @unique
+  originalName   String?
+  contentType    String
+  sizeBytes      Int
+  kind           ArchiveMediaKind
+  isPublic       Boolean          @default(false)
+  alumniId       String?
+  staffProfileId String?
+  classSetId     String?
+  archiveItemId  String?
+  uploadedAt     DateTime         @default(now())
+  alumni         Alumni?          @relation(fields: [alumniId], references: [id], onDelete: Restrict)
+  staffProfile   StaffProfile?    @relation(fields: [staffProfileId], references: [id], onDelete: Restrict)
+  classSet       AlumniClassSet?  @relation(fields: [classSetId], references: [id], onDelete: Restrict)
+  archiveItem    HistoricalArchiveItem? @relation(fields: [archiveItemId], references: [id], onDelete: Restrict)
+
+  @@index([alumniId, isPublic])
+  @@index([staffProfileId, isPublic])
+  @@index([classSetId, isPublic])
+  @@index([archiveItemId, isPublic])
+}
+
+model Permission {
+  id          String           @id @default(cuid())
+  key         String           @unique
+  description String?
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  grants      UserPermission[]
+}
+
+model UserPermission {
+  userId          String
+  permissionId    String
+  grantedByUserId String?
+  grantedAt       DateTime   @default(now())
+  user            User       @relation("PermissionRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  permission      Permission @relation(fields: [permissionId], references: [id], onDelete: Restrict)
+  grantedBy       User?      @relation("PermissionGrantor", fields: [grantedByUserId], references: [id], onDelete: SetNull)
+
+  @@id([userId, permissionId])
+  @@index([permissionId])
+}
+
+model PermissionAudit {
+  id                String               @id @default(cuid())
+  userId            String
+  permissionKey     String
+  action            PermissionAuditAction
+  changedByUserId   String?
+  note              String?
+  createdAt         DateTime             @default(now())
+  user              User                 @relation("PermissionAuditTarget", fields: [userId], references: [id], onDelete: Restrict)
+  changedBy         User?                @relation("PermissionAuditActor", fields: [changedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([permissionKey, createdAt])
 }
 
 model UpdateRequest {
@@ -187,6 +448,7 @@ model Department {
   description String?
   head        String?
   createdAt   DateTime @default(now())
+  staffAppointments StaffAppointment[]
 }
 
 model Message {

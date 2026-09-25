@@ -274,21 +274,35 @@ async function main() {
         studentId: student.id
       },
       update: {
+        fullName: [alumni.firstName, alumni.middleName, alumni.lastName].filter(Boolean).join(" "),
+        exitYear: alumni.graduationYear,
         graduationYear: alumni.graduationYear,
         occupation: alumni.occupation,
         company: alumni.company,
         location: alumni.location,
         bio: alumni.bio,
-        isPublic: true
+        verificationStatus: "VERIFIED",
+        isPublic: true,
+        publicName: true,
+        publicSchoolHistory: true,
+        publicOccupation: true,
+        publicBiography: true
       },
       create: {
         studentId: student.id,
+        fullName: [alumni.firstName, alumni.middleName, alumni.lastName].filter(Boolean).join(" "),
+        exitYear: alumni.graduationYear,
         graduationYear: alumni.graduationYear,
         occupation: alumni.occupation,
         company: alumni.company,
         location: alumni.location,
         bio: alumni.bio,
-        isPublic: true
+        verificationStatus: "VERIFIED",
+        isPublic: true,
+        publicName: true,
+        publicSchoolHistory: true,
+        publicOccupation: true,
+        publicBiography: true
       }
     });
   }

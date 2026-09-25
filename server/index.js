@@ -877,30 +877,92 @@ app.get(
         await prisma.alumni.findMany({
 
           where: {
-
             isPublic: true,
+            verificationStatus: "VERIFIED",
+            ...(year ? { exitYear: year, publicSchoolHistory: true } : {})
+          },
 
-            ...(year
-              ? {
-                  graduationYear:
-                    year
+          select: {
+            fullName: true,
+            formerName: true,
+            nameWhileAttending: true,
+            photoUrl: true,
+            exitYear: true,
+            entryYear: true,
+            approximatePeriod: true,
+            graduationYear: true,
+            graduationClass: true,
+            lastClassAttended: true,
+            departmentLabel: true,
+            house: true,
+            occupation: true,
+            company: true,
+            location: true,
+            bio: true,
+            memories: true,
+            publicName: true,
+            publicFormerName: true,
+            publicSchoolHistory: true,
+            publicPhoto: true,
+            publicOccupation: true,
+            publicLocation: true,
+            publicBiography: true,
+            publicMemories: true,
+            classMemberships: {
+              where: { status: "VERIFIED", classSet: { isPublic: true } },
+              select: {
+                classSet: {
+                  select: {
+                    displayName: true,
+                    entryYear: true,
+                    exitYear: true,
+                    approximatePeriod: true
+                  }
                 }
-              : {})
-
+              }
+            },
+            archiveMedia: {
+              where: {
+                isPublic: true,
+                kind: { in: ["PROFILE_PHOTO", "THEN_PHOTO", "NOW_PHOTO"] }
+              },
+              select: { storageKey: true, kind: true }
+            }
           },
 
-          include: {
-            student: true
-          },
-
-          orderBy: {
-            graduationYear: "desc"
-          }
+          orderBy: { exitYear: "desc" }
 
         });
 
 
-      res.json(alumni);
+      res.json(alumni.map(record => {
+        const mediaUrl = kind =>
+          record.archiveMedia.find(media => media.kind === kind)?.storageKey || null;
+        const schoolHistoryIsPublic = record.publicSchoolHistory;
+
+        return {
+          fullName: record.publicName ? record.fullName : null,
+          formerName: record.publicFormerName ? record.formerName : null,
+          nameWhileAttending: record.publicFormerName ? record.nameWhileAttending : null,
+          photoUrl: record.publicPhoto ? (mediaUrl("PROFILE_PHOTO") || record.photoUrl) : null,
+          entryYear: schoolHistoryIsPublic ? record.entryYear : null,
+          exitYear: schoolHistoryIsPublic ? (record.exitYear ?? record.graduationYear) : null,
+          graduationYear: schoolHistoryIsPublic ? (record.exitYear ?? record.graduationYear) : null,
+          approximatePeriod: schoolHistoryIsPublic ? record.approximatePeriod : null,
+          graduationClass: schoolHistoryIsPublic ? record.graduationClass : null,
+          lastClass: schoolHistoryIsPublic ? record.lastClassAttended : null,
+          department: schoolHistoryIsPublic ? record.departmentLabel : null,
+          house: schoolHistoryIsPublic ? record.house : null,
+          classSets: schoolHistoryIsPublic ? record.classMemberships.map(item => item.classSet) : [],
+          thenPhotoUrl: record.publicPhoto ? mediaUrl("THEN_PHOTO") : null,
+          nowPhotoUrl: record.publicPhoto ? mediaUrl("NOW_PHOTO") : null,
+          occupation: record.publicOccupation ? record.occupation : null,
+          company: record.publicOccupation ? record.company : null,
+          location: record.publicLocation ? record.location : null,
+          bio: record.publicBiography ? record.bio : null,
+          memories: record.publicMemories ? record.memories : null
+        };
+      }));
 
 
     } catch (error) {
@@ -934,25 +996,22 @@ app.get(
         await prisma.alumni.findMany({
 
           where: {
-
             isPublic: true,
-
-            graduationYear: {
-              not: null
-            }
-
+            verificationStatus: "VERIFIED",
+            publicSchoolHistory: true,
+            exitYear: { not: null }
           },
 
           distinct: [
-            "graduationYear"
+            "exitYear"
           ],
 
           select: {
-            graduationYear: true
+            exitYear: true
           },
 
           orderBy: {
-            graduationYear: "asc"
+            exitYear: "asc"
           }
 
         });
@@ -960,7 +1019,7 @@ app.get(
 
       res.json(
         rows.map(
-          row => row.graduationYear
+          row => row.exitYear
         )
       );
 
