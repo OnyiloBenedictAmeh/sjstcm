@@ -269,6 +269,14 @@ app.use(
 );
 
 
+// The admin dashboard is named admin.html rather than index.html.
+app.get("/admin/", (_, res) => {
+  res.sendFile(
+    path.join(__dirname, "../public/admin/admin.html")
+  );
+});
+
+
 // ============================================================
 // AUTHENTICATION
 // ============================================================

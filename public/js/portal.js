@@ -185,7 +185,7 @@ form?.addEventListener(
       ) {
 
         window.location.href =
-          "admin/admin.html";
+          "/admin/";
 
         return;
 
@@ -198,7 +198,7 @@ form?.addEventListener(
       ) {
 
         window.location.href =
-          "student/index.html";
+          "/student/index.html";
 
         return;
 
