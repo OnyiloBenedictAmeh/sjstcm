@@ -415,6 +415,59 @@ const allow =
   };
 
 
+const permissionCatalog = [
+  ["STUDENTS_VIEW", "View students"],
+  ["STUDENTS_MANAGE", "Manage students"],
+  ["ACADEMICS_VIEW", "View academic records"],
+  ["ACADEMICS_MANAGE", "Manage academic records"],
+  ["RESULTS_REVIEW", "Review results"],
+  ["ALUMNI_VIEW", "View alumni records"],
+  ["ALUMNI_VERIFY", "Verify alumni submissions"],
+  ["ALUMNI_MANAGE", "Manage alumni records"],
+  ["STAFF_VIEW", "View staff records"],
+  ["STAFF_MANAGE", "Manage staff records"],
+  ["CONTENT_VIEW", "View school content"],
+  ["CONTENT_MANAGE", "Manage school content"],
+  ["EVENTS_MANAGE", "Manage events"],
+  ["GALLERY_MANAGE", "Manage gallery"],
+  ["SYSTEM_MANAGE", "Manage system access"]
+];
+
+// Resolve grants from the database for every request so revocations take
+// effect immediately. ADMIN remains the existing full-access role.
+async function getCurrentPermissions(userId) {
+  const grants = await prisma.userPermission.findMany({
+    where: {
+      userId,
+      permission: { isActive: true }
+    },
+    select: { permission: { select: { key: true } } }
+  });
+
+  return grants.map(grant => grant.permission.key);
+}
+
+const requirePermission = (...requiredPermissions) =>
+  async (req, res, next) => {
+    if (req.user.role === "ADMIN") return next();
+
+    try {
+      const granted = await getCurrentPermissions(req.user.sub);
+      if (requiredPermissions.every(permission => granted.includes(permission))) {
+        return next();
+      }
+
+      return res.status(403).json({
+        error: "FORBIDDEN",
+        message: "You do not have access to this area."
+      });
+    } catch (error) {
+      console.error("PERMISSION CHECK ERROR:", error);
+      return res.status(500).json({ error: "Unable to authorize request." });
+    }
+  };
+
+
 // ============================================================
 // HEALTH
 // ============================================================
@@ -604,19 +657,21 @@ app.get(
 
     try {
 
-      const user =
-        await prisma.user.findUnique({
-
-          where: {
-            id: req.user.sub
+      const user = await prisma.user.findUnique({
+        where: { id: req.user.sub },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          createdAt: true,
+          student: {
+            select: { firstName: true, middleName: true, lastName: true }
           },
-
-          include: {
-            student: true,
-            alumni: true
+          alumni: {
+            select: { fullName: true }
           }
-
-        });
+        }
+      });
 
 
       if (!user) {
@@ -628,7 +683,11 @@ app.get(
       }
 
 
-      res.json(user);
+      const permissions = user.role === "ADMIN"
+        ? permissionCatalog.map(([key]) => key)
+        : await getCurrentPermissions(user.id);
+
+      res.json({ ...user, permissions });
 
 
     } catch (error) {
@@ -644,6 +703,169 @@ app.get(
 
     }
 
+  }
+);
+
+
+// ============================================================
+// PERMISSIONS
+// ============================================================
+
+app.get(
+  "/api/auth/permissions",
+  auth,
+  async (req, res) => {
+    try {
+      const permissions = req.user.role === "ADMIN"
+        ? permissionCatalog.map(([key]) => key)
+        : await getCurrentPermissions(req.user.sub);
+      res.json({ permissions });
+    } catch (error) {
+      console.error("PERMISSIONS LOAD ERROR:", error);
+      res.status(500).json({ error: "Unable to load permitted areas." });
+    }
+  }
+);
+
+app.get(
+  "/api/admin/permissions/:userId",
+  auth,
+  requirePermission("SYSTEM_MANAGE"),
+  async (req, res) => {
+    try {
+      const target = await prisma.user.findUnique({
+        where: { id: req.params.userId },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          userPermissions: {
+            where: { permission: { isActive: true } },
+            select: {
+              grantedAt: true,
+              permission: { select: { key: true, description: true } },
+              grantedBy: { select: { email: true } }
+            },
+            orderBy: { grantedAt: "asc" }
+          }
+        }
+      });
+
+      if (!target) return res.status(404).json({ error: "User not found." });
+      res.json({
+        id: target.id,
+        email: target.email,
+        role: target.role,
+        permissions: target.userPermissions.map(grant => ({
+          key: grant.permission.key,
+          description: grant.permission.description,
+          grantedAt: grant.grantedAt,
+          grantedBy: grant.grantedBy?.email || null
+        }))
+      });
+    } catch (error) {
+      console.error("PERMISSION LIST ERROR:", error);
+      res.status(500).json({ error: "Unable to load permissions." });
+    }
+  }
+);
+
+app.post(
+  "/api/admin/permissions/:userId/grant",
+  auth,
+  requirePermission("SYSTEM_MANAGE"),
+  async (req, res) => {
+    const key = String(req.body?.key || "");
+    const definition = permissionCatalog.find(([permission]) => permission === key);
+    if (!definition) return res.status(400).json({ error: "Invalid request." });
+
+    try {
+      const target = await prisma.user.findUnique({
+        where: { id: req.params.userId },
+        select: { id: true }
+      });
+      if (!target) return res.status(404).json({ error: "User not found." });
+
+      await prisma.$transaction(async tx => {
+        const permission = await tx.permission.upsert({
+          where: { key },
+          update: { description: definition[1], isActive: true },
+          create: { key, description: definition[1] }
+        });
+        const existing = await tx.userPermission.findUnique({
+          where: { userId_permissionId: { userId: target.id, permissionId: permission.id } },
+          select: { userId: true }
+        });
+        if (existing) return;
+
+        await tx.userPermission.create({
+          data: {
+            userId: target.id,
+            permissionId: permission.id,
+            grantedByUserId: req.user.sub
+          }
+        });
+        await tx.permissionAudit.create({
+          data: {
+            userId: target.id,
+            permissionKey: key,
+            action: "GRANTED",
+            changedByUserId: req.user.sub
+          }
+        });
+      });
+
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("PERMISSION GRANT ERROR:", error);
+      res.status(500).json({ error: "Unable to update access." });
+    }
+  }
+);
+
+app.post(
+  "/api/admin/permissions/:userId/revoke",
+  auth,
+  requirePermission("SYSTEM_MANAGE"),
+  async (req, res) => {
+    const key = String(req.body?.key || "");
+    const definition = permissionCatalog.find(([permission]) => permission === key);
+    if (!definition) return res.status(400).json({ error: "Invalid request." });
+
+    try {
+      const target = await prisma.user.findUnique({
+        where: { id: req.params.userId },
+        select: { id: true }
+      });
+      if (!target) return res.status(404).json({ error: "User not found." });
+
+      await prisma.$transaction(async tx => {
+        const existing = await tx.permission.findUnique({
+          where: { key },
+          select: { id: true }
+        });
+        if (!existing) return;
+
+        const removed = await tx.userPermission.deleteMany({
+          where: { userId: target.id, permissionId: existing.id }
+        });
+        if (removed.count) {
+          await tx.permissionAudit.create({
+            data: {
+              userId: target.id,
+              permissionKey: key,
+              action: "REVOKED",
+              changedByUserId: req.user.sub
+            }
+          });
+        }
+      });
+
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("PERMISSION REVOKE ERROR:", error);
+      res.status(500).json({ error: "Unable to update access." });
+    }
   }
 );
 

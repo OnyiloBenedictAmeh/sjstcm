@@ -1,3 +1,6 @@
+-- Keep all schema changes and backfills atomic on PostgreSQL.
+BEGIN;
+
 -- CreateEnum
 CREATE TYPE "VerificationStatus" AS ENUM ('PENDING', 'VERIFIED', 'REJECTED', 'NEEDS_INFORMATION');
 
@@ -19,12 +22,26 @@ CREATE SEQUENCE "former_staff_public_id_seq";
 
 CREATE FUNCTION generate_alumni_id() RETURNS TEXT
 LANGUAGE SQL VOLATILE AS $$
-  SELECT 'ALM-' || lpad(nextval('"alumni_public_id_seq"')::text, 6, '0');
+  WITH allocated AS (
+    SELECT nextval('"alumni_public_id_seq"') AS value
+  )
+  SELECT 'ALM-' || CASE
+    WHEN value < 1000000 THEN lpad(value::text, 6, '0')
+    ELSE value::text
+  END
+  FROM allocated;
 $$;
 
 CREATE FUNCTION generate_former_staff_id() RETURNS TEXT
 LANGUAGE SQL VOLATILE AS $$
-  SELECT 'FST-' || lpad(nextval('"former_staff_public_id_seq"')::text, 6, '0');
+  WITH allocated AS (
+    SELECT nextval('"former_staff_public_id_seq"') AS value
+  )
+  SELECT 'FST-' || CASE
+    WHEN value < 1000000 THEN lpad(value::text, 6, '0')
+    ELSE value::text
+  END
+  FROM allocated;
 $$;
 
 -- DropForeignKey
@@ -61,13 +78,17 @@ ALTER COLUMN "studentId" DROP NOT NULL,
 ALTER COLUMN "isPublic" SET DEFAULT false;
 
 -- Backfill existing records without inferring entry years or class memberships.
-UPDATE "Alumni" SET "alumniId" = generate_alumni_id();
+UPDATE "Alumni"
+SET "alumniId" = generate_alumni_id()
+WHERE "alumniId" IS NULL;
 UPDATE "Alumni" SET "exitYear" = "graduationYear" WHERE "exitYear" IS NULL;
 UPDATE "Alumni" AS a
 SET "fullName" = trim(concat_ws(' ', s."firstName", s."middleName", s."lastName"))
 FROM "Student" AS s
 WHERE a."studentId" = s."id";
 UPDATE "Alumni" SET "fullName" = 'Unverified alumni record' WHERE "fullName" IS NULL;
+UPDATE "Alumni"
+SET "verificationStatus" = 'PENDING', "isPublic" = false;
 ALTER TABLE "Alumni" ALTER COLUMN "alumniId" SET NOT NULL;
 ALTER TABLE "Alumni" ALTER COLUMN "alumniId" SET DEFAULT generate_alumni_id();
 ALTER TABLE "Alumni" ALTER COLUMN "fullName" SET NOT NULL;
@@ -369,3 +390,5 @@ ALTER TABLE "ArchiveMedia"
   CHECK (num_nonnulls("alumniId", "staffProfileId", "classSetId", "archiveItemId") = 1),
   ADD CONSTRAINT "ArchiveMedia_private_evidence_check"
   CHECK ("kind" <> 'PRIVATE_EVIDENCE' OR "isPublic" = false);
+
+COMMIT;

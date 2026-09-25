@@ -15,6 +15,15 @@ async function ensureUser(email, role, password) {
 }
 
 async function main() {
+  const isSafeEnvironment = ["development", "test"].includes(process.env.NODE_ENV);
+  const explicitlyAllowed = process.env.ALLOW_DEVELOPMENT_SEED === "true";
+
+  if (!isSafeEnvironment || !explicitlyAllowed) {
+    throw new Error(
+      "Seed blocked. Set NODE_ENV=development (or test) and ALLOW_DEVELOPMENT_SEED=true only for an isolated non-production database."
+    );
+  }
+
   const schoolName =
     process.env.SCHOOL_NAME ||
     "St. Joseph's Science and Technical College, Makurdi";
@@ -216,9 +225,11 @@ async function main() {
   // =========================================
   // ALUMNI
   // =========================================
+  // These explicitly marked sample IDs are for an isolated development/test database.
   const alumniEntries = [
     {
-      studentId: "ALM-2021-001",
+      alumniId: "ALM-DEV-2021-001",
+      studentId: "DEV-STU-ALUMNI-2021-001",
       firstName: "Grace",
       lastName: "Adebayo",
       graduationYear: 2021,
@@ -228,7 +239,8 @@ async function main() {
       bio: "Product-minded engineer and mentor for young girls in STEM."
     },
     {
-      studentId: "ALM-2020-015",
+      alumniId: "ALM-DEV-2020-015",
+      studentId: "DEV-STU-ALUMNI-2020-015",
       firstName: "Kingsley",
       lastName: "Eze",
       graduationYear: 2020,
@@ -238,7 +250,8 @@ async function main() {
       bio: "Passionate about sustainable infrastructure and community development."
     },
     {
-      studentId: "ALM-2019-010",
+      alumniId: "ALM-DEV-2019-010",
+      studentId: "DEV-STU-ALUMNI-2019-010",
       firstName: "Mira",
       lastName: "Ibrahim",
       graduationYear: 2019,
@@ -289,6 +302,7 @@ async function main() {
         publicBiography: true
       },
       create: {
+        alumniId: alumni.alumniId,
         studentId: student.id,
         fullName: [alumni.firstName, alumni.middleName, alumni.lastName].filter(Boolean).join(" "),
         exitYear: alumni.graduationYear,

@@ -188,6 +188,8 @@ async function api(url, options = {}) {
 
   if (response.status === 403) {
 
+    showLockedDoor();
+
     throw new Error(
       "You do not have permission to perform this action."
     );
@@ -208,6 +210,77 @@ async function api(url, options = {}) {
 }
 
 
+const permittedAreaDefinitions = [
+  { keys: ["STUDENTS_VIEW", "STUDENTS_MANAGE"], title: "Students", icon: "👨‍🎓", section: "students" },
+  { keys: ["ACADEMICS_VIEW", "ACADEMICS_MANAGE", "RESULTS_REVIEW"], title: "Academic Records", icon: "📚", section: "academics" },
+  { keys: ["ALUMNI_VIEW", "ALUMNI_VERIFY", "ALUMNI_MANAGE"], title: "Alumni", icon: "📖", section: "alumni" },
+  { keys: ["CONTENT_VIEW", "CONTENT_MANAGE"], title: "News and Content", icon: "📰", section: "news" },
+  { keys: ["EVENTS_MANAGE"], title: "Events", icon: "📅", section: "events" },
+  { keys: ["GALLERY_MANAGE"], title: "Gallery", icon: "📸", section: "gallery" },
+  { keys: ["SYSTEM_MANAGE"], title: "System Access", icon: "⚙️", section: null }
+];
+
+function renderPermittedAreas() {
+  const container = $("#permitted-areas-list");
+  if (!container || !currentUser) return;
+
+  const permissions = new Set(currentUser.permissions || []);
+  const areas = permittedAreaDefinitions.filter(area =>
+    area.keys.some(key => permissions.has(key))
+  );
+
+  if (!areas.length) {
+    container.innerHTML = '<p class="permitted-areas-empty">No additional areas are assigned to your account.</p>';
+    return;
+  }
+
+  container.innerHTML = areas.map(area => `
+    <button class="permitted-area-card" type="button" ${area.section ? `data-permitted-section="${area.section}"` : "disabled"}>
+      <span aria-hidden="true">${area.icon}</span>
+      <strong>${escapeHTML(area.title)}</strong>
+      <span class="permitted-area-open">${area.section ? "Open area →" : "Available"}</span>
+    </button>
+  `).join("");
+
+  container.querySelectorAll("[data-permitted-section]").forEach(button => {
+    button.addEventListener("click", () => openSection(button.dataset.permittedSection));
+  });
+}
+
+function showLockedDoor() {
+  if (document.querySelector("#locked-door")) return;
+
+  const door = document.createElement("div");
+  door.id = "locked-door";
+  door.className = "locked-door-backdrop";
+  door.innerHTML = `
+    <section class="locked-door-card" role="dialog" aria-modal="true" aria-labelledby="locked-door-title">
+      <div class="locked-door-icon" aria-hidden="true">🚪 🔒</div>
+      <h2 id="locked-door-title">This door is locked</h2>
+      <p>You don’t currently have access to this area of the portal.</p>
+      <div class="locked-door-actions">
+        <button class="button" type="button" data-door-areas>Take Me to My Permitted Areas</button>
+        <button class="button secondary" type="button" data-door-dashboard>Return to Dashboard</button>
+      </div>
+    </section>`;
+  document.body.append(door);
+
+  door.querySelector("[data-door-areas]").addEventListener("click", () => {
+    door.remove();
+    openSection("overview");
+    $("#permitted-areas")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    $("#permitted-areas-list")?.querySelector("button")?.focus({ preventScroll: true });
+  });
+  door.querySelector("[data-door-dashboard]").addEventListener("click", () => {
+    door.remove();
+    openSection("overview");
+  });
+  door.addEventListener("click", event => {
+    if (event.target === door) door.remove();
+  });
+}
+
+
 // ============================================================
 // CURRENT USER
 // ============================================================
@@ -219,6 +292,8 @@ async function loadCurrentUser() {
 
   currentUser =
     await api("/api/auth/me");
+
+  renderPermittedAreas();
 
 
   if (
@@ -1093,6 +1168,11 @@ $("#add-student-form")
             "admin/login.html";
 
           return;
+        }
+
+        if (response.status === 403) {
+          showLockedDoor();
+          throw new Error("You do not have access to this area.");
         }
 
 
@@ -2978,6 +3058,11 @@ async function uploadClassPhoto(
         "admin/login.html";
 
       return;
+    }
+
+    if (response.status === 403) {
+      showLockedDoor();
+      throw new Error("You do not have access to this area.");
     }
 
 
