@@ -20,7 +20,12 @@
 
   <main class="auth-page">
 
-    <form class="auth-card" id="login-form">
+    <form
+      class="auth-card"
+      id="login-form"
+      method="post"
+      action="api/auth/login"
+    >
 
       <span class="eyebrow">ADMINISTRATION</span>
 
@@ -51,7 +56,7 @@
 
       <p id="login-status" role="status" aria-live="polite"></p>
 
-      <a href="/">
+      <a href="index.html">
         ← Back to website
       </a>
 

@@ -11,6 +11,36 @@ const form =
   );
 
 
+const passwordToggle =
+  document.querySelector("#toggle-password");
+
+passwordToggle?.addEventListener("click", () => {
+  const passwordInput =
+    document.querySelector("#login-password");
+
+  if (!passwordInput) return;
+
+  const showPassword =
+    passwordInput.type === "password";
+
+  passwordInput.type =
+    showPassword ? "text" : "password";
+
+  passwordToggle.textContent =
+    showPassword ? "Hide" : "Show";
+
+  passwordToggle.setAttribute(
+    "aria-label",
+    showPassword ? "Hide password" : "Show password"
+  );
+
+  passwordToggle.setAttribute(
+    "aria-pressed",
+    String(showPassword)
+  );
+});
+
+
 form?.addEventListener(
   "submit",
   async event => {
@@ -185,7 +215,7 @@ form?.addEventListener(
       ) {
 
         window.location.href =
-          "/admin/";
+          new URL("admin/", document.baseURI).href;
 
         return;
 
@@ -198,7 +228,7 @@ form?.addEventListener(
       ) {
 
         window.location.href =
-          "/student/index.html";
+          new URL("student/index.html", document.baseURI).href;
 
         return;
 

@@ -253,6 +253,24 @@ function bindMobileNavigation(header) {
     }
   );
 
+  header.addEventListener("keydown", event => {
+    if (event.key !== "Escape" || toggle.getAttribute("aria-expanded") !== "true") return;
+    navigation.classList.remove("open", "is-open");
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.setAttribute("aria-label", "Open navigation menu");
+    toggle.focus();
+  });
+
+}
+
+
+function markCurrentNavigationLink() {
+  const currentPath = new URL(window.location.href).pathname.replace(/\/$/, "/index.html");
+  $$("#main-navigation a[href]").forEach(link => {
+    const linkPath = new URL(link.href, document.baseURI).pathname.replace(/\/$/, "/index.html");
+    if (linkPath === currentPath) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  });
 }
 
 
@@ -323,6 +341,8 @@ function nav() {
         <a href="${sitePrefix}academics.html">
           Academics
         </a>
+
+        <a href="${sitePrefix}admissions.html">Admissions</a>
 
         <a href="${sitePrefix}departments.html">
           Departments
@@ -445,12 +465,15 @@ function newsCard(news) {
     esc(news.title);
 
 
-  const excerpt =
-    esc(
+  const excerptText =
+    String(
       news.excerpt ||
       news.content ||
       "Read the latest school announcement."
-    );
+    ).trim();
+
+  const excerpt =
+    esc(excerptText.slice(0, 180));
 
 
   return `
@@ -472,14 +495,12 @@ function newsCard(news) {
       </span>
 
 
-      <h3>
-        ${title}
-      </h3>
+      <h3><a href="news.html?article=${encodeURIComponent(news.slug || news.id)}">${title}</a></h3>
 
 
       <p>
-        ${excerpt.slice(0, 180)}
-        ${excerpt.length > 180 ? "…" : ""}
+        ${excerpt}
+        ${excerptText.length > 180 ? "…" : ""}
       </p>
 
     </article>
@@ -515,6 +536,30 @@ async function loadNews() {
       Array.isArray(news)
         ? news
         : [];
+
+    const requestedSlug = new URLSearchParams(window.location.search).get("article");
+    const articleContainer = $("#news-article");
+    if (articleContainer && requestedSlug) {
+      const listContainer = $("#all-news");
+      if (listContainer) listContainer.hidden = true;
+      const article = items.find(item => item.slug === requestedSlug || item.id === requestedSlug);
+
+      if (article) {
+        const date = article.publishedAt ? formatDate(article.publishedAt) : "";
+        articleContainer.hidden = false;
+        articleContainer.innerHTML = `
+          <a class="text-link" href="news.html">← All news</a>
+          ${article.imageUrl ? `<img class="article-image" src="${esc(article.imageUrl)}" alt="${esc(article.title)}" loading="lazy">` : ""}
+          ${date ? `<p class="eyebrow"><time datetime="${esc(article.publishedAt)}">${esc(date)}</time></p>` : ""}
+          <h2>${esc(article.title)}</h2>
+          <div class="article-content">${esc(article.content || article.excerpt || "").split(/\r?\n\s*\r?\n/).map(paragraph => `<p>${paragraph.replace(/\r?\n/g, "<br>")}</p>`).join("")}</div>
+        `;
+        document.title = `${article.title} | School News`;
+      } else {
+        articleContainer.hidden = false;
+        articleContainer.innerHTML = `${emptyCard("Article unavailable", "This article may have been removed or is no longer published.")}<a class="text-link" href="news.html">Browse all news</a>`;
+      }
+    }
 
 
     if (homeList) {
@@ -624,10 +669,12 @@ function eventCard(event) {
         <strong>
           ${esc(
             event.location ||
-            "School campus"
+            "Location to be announced"
           )}
         </strong>
       </p>
+
+      <p><time datetime="${esc(event.startsAt)}">${esc(new Date(event.startsAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }))}</time></p>
 
 
       <p>
@@ -651,9 +698,11 @@ async function loadEvents() {
 
   const allList =
     $("#all-events");
+  const pastList =
+    $("#past-events");
 
 
-  if (!homeList && !allList) {
+  if (!homeList && !allList && !pastList) {
     return;
   }
 
@@ -671,13 +720,24 @@ async function loadEvents() {
         ? events
         : [];
 
+    const upcomingItems =
+      items.filter(event => {
+        const startsAt = new Date(event.startsAt);
+        return !Number.isNaN(startsAt.getTime()) &&
+          startsAt >= new Date();
+      });
+    const pastItems = items.filter(event => {
+      const startsAt = new Date(event.startsAt);
+      return !Number.isNaN(startsAt.getTime()) && startsAt < new Date();
+    });
+
 
     if (homeList) {
 
       setHTML(
         "#events-list",
-        items.length
-          ? items
+        upcomingItems.length
+          ? upcomingItems
               .slice(0, 3)
               .map(eventCard)
               .join("")
@@ -694,16 +754,22 @@ async function loadEvents() {
 
       setHTML(
         "#all-events",
-        items.length
-          ? items
+        upcomingItems.length
+          ? upcomingItems
               .map(eventCard)
               .join("")
           : emptyCard(
               "Events",
-              "No upcoming events yet."
+              "No upcoming events have been announced yet."
             )
       );
 
+    }
+
+    if (pastList) {
+      pastList.innerHTML = pastItems.length
+        ? pastItems.map(eventCard).join("")
+        : emptyCard("Past events", "There are no past events to display yet.");
     }
 
 
@@ -738,6 +804,10 @@ async function loadEvents() {
         )
       );
 
+    }
+
+    if (pastList) {
+      pastList.innerHTML = emptyCard("Past events", "Past events could not be loaded right now.");
     }
 
   }
@@ -853,14 +923,9 @@ function galleryCard(photo) {
 
     <figure>
 
-      <img
-        src="${esc(photo.imageUrl)}"
-        alt="${esc(
-          photo.title ||
-          "School photo"
-        )}"
-        loading="lazy"
-      >
+      <button class="gallery-preview" type="button" data-image="${esc(photo.imageUrl)}" data-caption="${esc(photo.caption || photo.title || "School photo")}" aria-label="View ${esc(photo.title || "school photo")}">
+        <img src="${esc(photo.imageUrl)}" alt="${esc(photo.title || photo.caption || "School photo")}" loading="lazy">
+      </button>
 
 
       ${
@@ -893,6 +958,24 @@ async function loadGallery() {
 
 
   if (!containers.length) return;
+
+  document.addEventListener("click", event => {
+    const preview = event.target.closest(".gallery-preview");
+    if (!preview) return;
+
+    const dialog = $("#gallery-viewer");
+    if (!dialog) return;
+    const image = $("#gallery-viewer-image", dialog);
+    const caption = $("#gallery-viewer-caption", dialog);
+    if (!image || !caption) return;
+
+    image.src = preview.dataset.image;
+    image.alt = preview.dataset.caption;
+    caption.textContent = preview.dataset.caption;
+    dialog.showModal();
+  });
+
+  $("#close-gallery-viewer")?.addEventListener("click", () => $("#gallery-viewer")?.close());
 
 
   try {
@@ -1038,8 +1121,11 @@ async function loadAlumni() {
   const yearsList =
     $("#class-years");
 
+  const classList =
+    $("#alumni-profile");
 
-  if (!alumniList && !yearsList) {
+
+  if (!alumniList && !yearsList && !classList) {
     return;
   }
 
@@ -1118,7 +1204,7 @@ async function loadAlumni() {
               .map(year => `
                 <a
                   class="card"
-                  href="${sitePrefix}alumni/profile.html?year=${encodeURIComponent(year)}"
+                  href="alumni/profile.html?year=${encodeURIComponent(year)}"
                 >
 
                   <h2>
@@ -1157,6 +1243,57 @@ async function loadAlumni() {
 
     }
 
+  }
+
+
+  if (classList) {
+    const requestedYear =
+      new URLSearchParams(window.location.search).get("year");
+    const year =
+      /^\d{4}$/.test(requestedYear || "")
+        ? requestedYear
+        : "";
+
+    try {
+      const alumni = await api(
+        year
+          ? `/api/alumni?year=${encodeURIComponent(year)}`
+          : "/api/alumni"
+      );
+      const items = Array.isArray(alumni) ? alumni : [];
+      const heading = year ? `Class of ${year}` : "Alumni directory";
+      const description = year
+        ? `Alumni members from the ${year} graduating class.`
+        : "Members of our alumni community.";
+
+      document.title = `${heading} | St. Joseph's Science and Technical College, Makurdi`;
+
+      classList.innerHTML = `
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">ALUMNI COMMUNITY</span>
+            <h1 id="profile-heading">${esc(heading)}</h1>
+            <p class="lead">${esc(description)}</p>
+          </div>
+        </div>
+        <div class="grid">
+          ${items.length
+            ? items.map(alumniCard).join("")
+            : emptyCard(
+                "Alumni",
+                year
+                  ? `No public alumni profiles were found for ${year}.`
+                  : "No public alumni profiles are available yet."
+              )}
+        </div>
+      `;
+    } catch (error) {
+      console.error("ALUMNI CLASS LOAD ERROR:", error);
+      classList.innerHTML = emptyCard(
+        "Alumni",
+        "This alumni class could not be loaded right now."
+      );
+    }
   }
 
 }
@@ -1433,6 +1570,7 @@ function setCurrentYear() {
 async function load() {
 
   nav();
+  markCurrentNavigationLink();
 
   setCurrentYear();
 
