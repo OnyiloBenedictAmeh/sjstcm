@@ -16,6 +16,19 @@ const $$ = (selector, parent = document) =>
   [...parent.querySelectorAll(selector)];
 
 
+/* =========================================================
+   API BASE
+   ========================================================= */
+
+const isLocalApiHost = ["localhost", "127.0.0.1", "::1"].includes(
+  window.location.hostname
+);
+
+const API_BASE_URL = isLocalApiHost
+  ? window.location.origin
+  : "https://sjstcm-apinpm-install-andand-npx-prisma.onrender.com";
+
+
 const esc = value =>
   String(value ?? "").replace(
     /[&<>"']/g,
@@ -105,9 +118,14 @@ function appendHTML(selector, html) {
 
 async function api(url, options = {}) {
 
+  const requestUrl = new URL(url, API_BASE_URL);
+  const sameOrigin = requestUrl.origin === window.location.origin;
+
   const config = {
-    credentials: "include",
     ...options,
+    // Public API calls use cookies only when they remain same-origin.
+    // Production public pages do not need authenticated cookies.
+    credentials: sameOrigin ? "include" : "omit",
     headers: {
       ...(options.headers || {})
     }
@@ -136,7 +154,7 @@ async function api(url, options = {}) {
 
   const response =
     await fetch(
-      url,
+      requestUrl,
       config
     );
 
@@ -955,7 +973,7 @@ function alumniCard(alumni) {
 
 
   const fullName =
-    [
+    alumni.fullName || alumni.name || [
       student.firstName,
       student.middleName,
       student.lastName
@@ -963,6 +981,12 @@ function alumniCard(alumni) {
       .filter(Boolean)
       .join(" ");
 
+
+  const period = alumni.entryYear && alumni.exitYear
+    ? `${alumni.entryYear}–${alumni.exitYear} Set`
+    : alumni.graduationYear
+      ? `${alumni.graduationYear} Set`
+      : "School years to be confirmed";
 
   return `
 
@@ -994,10 +1018,9 @@ function alumniCard(alumni) {
 
 
       <p>
-        Class of
         <strong>
           ${esc(
-            alumni.graduationYear ||
+          period || alumni.graduationYear ||
             "—"
           )}
         </strong>
@@ -1010,6 +1033,14 @@ function alumniCard(alumni) {
           "Alumnus"
         )}
       </p>
+
+      ${alumni.lastClass ? `<p><strong>Last class:</strong> ${esc(alumni.lastClass)}</p>` : ""}
+      ${alumni.department || alumni.programme ? `<p><strong>Department:</strong> ${esc(alumni.department || alumni.programme)}</p>` : ""}
+      ${alumni.thenPhotoUrl || alumni.nowPhotoUrl ? `
+        <div class="then-now-photos" aria-label="Then and now photos">
+          ${alumni.thenPhotoUrl ? `<figure><img src="${esc(alumni.thenPhotoUrl)}" alt="${esc(fullName)} at school" loading="lazy"><figcaption>Then</figcaption></figure>` : ""}
+          ${alumni.nowPhotoUrl ? `<figure><img src="${esc(alumni.nowPhotoUrl)}" alt="${esc(fullName)} now" loading="lazy"><figcaption>Now</figcaption></figure>` : ""}
+        </div>` : ""}
 
 
       ${
@@ -1124,11 +1155,11 @@ async function loadAlumni() {
                 >
 
                   <h2>
-                    Class of ${esc(year)}
+                    ${esc(year)} Set
                   </h2>
 
                   <p>
-                    Explore alumni from ${esc(year)}.
+                    Exit year ${esc(year)}. Entry years and historical details may not be available yet.
                   </p>
 
                 </a>
@@ -1177,9 +1208,9 @@ async function loadAlumni() {
           : "/api/alumni"
       );
       const items = Array.isArray(alumni) ? alumni : [];
-      const heading = year ? `Class of ${year}` : "Alumni directory";
+      const heading = year ? `${year} Set` : "Alumni directory";
       const description = year
-        ? `Alumni members from the ${year} graduating class.`
+        ? `Alumni records grouped by exit year ${year}. Entry year and other historical details may not be available yet.`
         : "Members of our alumni community.";
 
       document.title = `${heading} | St. Joseph's Science and Technical College, Makurdi`;

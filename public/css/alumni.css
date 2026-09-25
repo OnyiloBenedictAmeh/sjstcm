@@ -1,0 +1,74 @@
+.alumni-onboarding {
+  width: min(100% - 40px, 920px);
+  margin: 0 auto;
+  padding: 36px 0 76px;
+}
+
+.onboarding-intro { max-width: 760px; margin: 26px auto 30px; text-align: center; }
+.onboarding-intro h1 { margin: 10px 0; }
+.demo-note, .private-note { padding: 14px 16px; border-radius: 10px; background: #eef4ff; color: #263650; font-size: .92rem; }
+.demo-note { border-left: 4px solid var(--accent); text-align: left; }
+.private-note { background: #f4f6f9; }
+.onboarding-steps { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin: 0 0 20px; padding: 0; list-style: none; counter-reset: onboarding; }
+.onboarding-steps li { min-width: 0; padding: 12px 8px; border-bottom: 3px solid var(--line); color: var(--muted); font-size: .78rem; font-weight: 700; text-align: center; overflow-wrap: anywhere; }
+.onboarding-steps li[aria-current="step"] { border-color: var(--accent); color: var(--ink); }
+.onboarding-steps li.complete { border-color: #84a98c; color: #315d3a; }
+.onboarding-card, .confirmation-card { padding: clamp(20px, 5vw, 42px); border: 1px solid var(--line); border-radius: var(--radius); background: #fff; box-shadow: var(--shadow); }
+.onboarding-card { max-width: 780px; margin: 0 auto; }
+.wizard-step h2 { margin: 0 0 8px; }
+.step-count, .step-help { color: var(--muted); }
+.step-count { margin: 0 0 18px; font-size: .85rem; font-weight: 750; }
+.step-help { margin: 0 0 24px; }
+.onboarding-two-col { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.wizard-step .form-group { margin-bottom: 18px; }
+.wizard-step input:not([type="checkbox"]), .wizard-step textarea { width: 100%; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; color: var(--ink); background: #fff; font: inherit; }
+.wizard-step input[type="checkbox"] { width: 20px; height: 20px; }
+.wizard-step .form-group label span, .wizard-step h2 span { color: var(--muted); font-size: .88em; font-weight: 500; }
+.wizard-step input[type="file"] { padding: 10px; }
+.prominent-field { padding: 16px; border-left: 4px solid var(--gold); border-radius: 8px; background: #fffbed; }
+.prominent-field label { font-size: 1rem !important; }
+.check-row { display: flex; align-items: flex-start; gap: 12px; margin: 12px 0 18px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
+.check-row input { width: 20px; height: 20px; flex: 0 0 20px; margin: 1px 0 0; accent-color: var(--accent); }
+.visibility-choice { margin: 16px 0; padding: 16px; border: 1px solid var(--line); border-radius: 10px; }
+.visibility-choice legend { padding: 0 6px; font-weight: 750; }
+.visibility-choice p { margin: 8px 0 0; color: var(--muted); font-size: .9rem; }
+.wizard-controls { display: flex; justify-content: space-between; gap: 12px; margin-top: 26px; }
+.wizard-controls button[hidden] { display: none; }
+.wizard-error { padding: 12px; border-radius: 8px; color: #8b1b1b; background: #fff0f0; }
+.review-summary { display: grid; grid-template-columns: minmax(170px, .8fr) minmax(0, 1.5fr); margin: 20px 0; }
+.review-summary dt, .review-summary dd { margin: 0; padding: 12px 8px; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.review-summary dt { font-weight: 750; }
+.confirmation-card { max-width: 780px; margin: 24px auto 0; }
+.confirmation-card h2 { margin-top: 8px; }
+.confirmation-card li { margin: 10px 0; }
+.reference-number { display: inline-block; padding: 8px 12px; border-radius: 8px; background: #f4f6f9; letter-spacing: .04em; }
+.alumni-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+.then-now-photos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 14px 0; }
+.then-now-photos figure { min-width: 0; margin: 0; }
+.then-now-photos img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; }
+.then-now-photos figcaption { margin-top: 4px; color: var(--muted); font-size: .85rem; }
+.missing-class { margin-top: 24px; padding: 20px; border: 1px dashed #9aa8ba; border-radius: var(--radius); background: #fff; }
+.class-photo-placeholder { margin: 0 0 24px; }
+.class-photo-placeholder > div { display: grid; min-height: clamp(150px, 28vw, 320px); place-items: center; border: 1px dashed #9aa8ba; border-radius: var(--radius); color: var(--muted); background: #f4f6f9; font-weight: 750; }
+.class-photo-placeholder figcaption { margin-top: 8px; color: var(--muted); font-size: .9rem; }
+.class-invitation { margin-top: 24px; padding: 24px; border-radius: var(--radius); color: #fff; background: var(--ink); }
+.class-invitation h2 { color: #fff; }
+.class-invitation p { color: rgba(255,255,255,.78); }
+.onboarding-card :focus-visible, .wizard-controls :focus-visible, .alumni-onboarding a:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+@media (max-width: 700px) {
+  .onboarding-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .onboarding-steps li { font-size: .74rem; }
+}
+
+@media (max-width: 480px) {
+  .alumni-onboarding { width: min(100% - 28px, 920px); padding-top: 22px; }
+  .onboarding-intro { text-align: left; margin-top: 18px; }
+  .onboarding-two-col { grid-template-columns: 1fr; gap: 0; }
+  .onboarding-card, .confirmation-card { padding: 20px 16px; }
+  .review-summary { grid-template-columns: 1fr; }
+  .review-summary dt { padding-bottom: 2px; border-bottom: 0; }
+  .review-summary dd { padding-top: 2px; }
+  .wizard-controls { flex-direction: column-reverse; }
+  .wizard-controls .button { width: 100%; }
+}

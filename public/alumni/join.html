@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <base href="/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Create your alumni profile and share your school history for verification.">
+  <meta name="theme-color" content="#0f172a">
+  <title>Join Alumni Community | St. Joseph's Science and Technical College, Makurdi</title>
+  <link rel="icon" type="image/png" href="assets/images/favicon.png">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <link rel="stylesheet" href="css/alumni.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html" aria-label="St. Joseph's Science and Technical College, Makurdi">
+      <img src="assets/images/logo.png" alt="St. Joseph's Science and Technical College logo" class="school-logo">
+      <span class="brand-text"><span class="brand-short">SJSTC</span><span class="brand-full">St. Joseph's Science and Technical College</span><span class="brand-location">Makurdi</span></span>
+    </a>
+    <button class="menu-toggle" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="main-navigation"><i class="bx bx-menu" aria-hidden="true"></i></button>
+    <nav id="main-navigation" aria-label="Main navigation">
+      <a href="index.html">Home</a><a href="about.html">About</a><a href="academics.html">Academics</a><a href="admissions.html">Admissions</a><a href="news.html">News</a><a href="events.html">Events</a><a href="gallery.html">Gallery</a><a href="alumni/index.html" aria-current="page">Alumni</a><a href="contact.html">Contact</a><a class="nav-button" href="student/login.html">Student Portal</a>
+    </nav>
+  </header>
+
+  <main class="alumni-onboarding">
+    <div class="page-back"><a href="alumni/index.html">← Alumni Community</a><a href="student/login.html">Already have an account? Alumni Login</a></div>
+    <header class="onboarding-intro">
+      <span class="eyebrow">JOIN ALUMNI COMMUNITY</span>
+      <h1>Create your alumni profile</h1>
+      <p class="lead">Historical alumni can create a profile even when no old student record exists. Share what you remember; exact dates and documents are not required.</p>
+      <p class="step-help">The school can assign a permanent alumni ID after verification. Years and Set labels describe school history; they are not your identity number.</p>
+      <p class="demo-note"><strong>Frontend preview:</strong> this form demonstrates the registration flow. It does not create an account or send or save your information yet.</p>
+    </header>
+
+    <ol class="onboarding-steps" aria-label="Registration steps">
+      <li aria-current="step">Create account</li><li>Personal information</li><li>School history</li><li>Alumni profile</li><li>Evidence</li><li>Review</li>
+    </ol>
+
+    <form id="alumni-onboarding-form" class="onboarding-card" novalidate>
+      <p class="step-count" id="step-count" aria-live="polite">Step 1 of 6</p>
+      <section class="wizard-step" data-step="0" aria-labelledby="account-title">
+        <h2 id="account-title">Create your account</h2><p class="step-help">An account will let you manage your profile and respond if the school asks for more information.</p>
+        <div class="form-group"><label for="account-email">Email address</label><input id="account-email" name="email" type="email" autocomplete="email" required></div>
+        <div class="onboarding-two-col">
+          <div class="form-group"><label for="account-password">Password</label><input id="account-password" name="password" type="password" autocomplete="new-password" minlength="8" required><small>At least 8 characters.</small></div>
+          <div class="form-group"><label for="account-confirm">Confirm password</label><input id="account-confirm" name="confirmPassword" type="password" autocomplete="new-password" required></div>
+        </div>
+        <p class="private-note">Passwords are only included to preview this step. They are not sent or saved by this demo.</p>
+      </section>
+
+      <section class="wizard-step" data-step="1" aria-labelledby="personal-title" hidden>
+        <h2 id="personal-title">Personal information</h2><p class="step-help">Use your current name, then add the name your school records may show.</p>
+        <div class="form-group"><label for="current-name">Full current name</label><input id="current-name" name="currentName" autocomplete="name" required></div>
+        <div class="form-group prominent-field"><label for="school-name">Name while attending school</label><input id="school-name" name="schoolName" autocomplete="additional-name" required><small>If your surname has changed, this helps the school find and verify your history.</small></div>
+        <div class="form-group"><label for="phone">Phone / WhatsApp <span>(optional)</span></label><input id="phone" name="phone" type="tel" autocomplete="tel"></div>
+      </section>
+
+      <section class="wizard-step" data-step="2" aria-labelledby="history-title" hidden>
+        <h2 id="history-title">School history</h2><p class="step-help">Share the details you remember. The school can verify or correct them later.</p>
+        <label class="check-row"><input id="years-unknown" name="yearsUnknown" type="checkbox"><span>I don't remember the exact year</span></label>
+        <div id="exact-years" class="onboarding-two-col">
+          <div class="form-group"><label for="entry-year">Entry year <span>(if known)</span></label><input id="entry-year" name="entryYear" inputmode="numeric" pattern="[0-9]{4}" placeholder="e.g. 1987"></div>
+          <div class="form-group"><label for="exit-year">Exit / graduation year <span>(if known)</span></label><input id="exit-year" name="exitYear" inputmode="numeric" pattern="[0-9]{4}" placeholder="e.g. 1992"></div>
+        </div>
+        <div id="approximate-period" class="form-group" hidden><label for="period">Approximate period or years</label><input id="period" name="approximatePeriod" placeholder="e.g. Approximately 1980–1985"><small>A rough period is helpful. Please don't guess exact years.</small></div>
+        <div class="form-group"><label for="last-class">Last class attended <span>(optional)</span></label><input id="last-class" name="lastClass" placeholder="e.g. Form 5"></div>
+        <div class="onboarding-two-col">
+          <div class="form-group"><label for="department">Department / Programme <span>(optional)</span></label><input id="department" name="department"></div>
+          <div class="form-group"><label for="house">House <span>(optional)</span></label><input id="house" name="house"></div>
+        </div>
+        <div class="onboarding-two-col">
+          <div class="form-group"><label for="class-set">Class / Set label <span>(optional)</span></label><input id="class-set" name="classSet" placeholder="e.g. 1987–1992 Set"></div>
+          <div class="form-group"><label for="admission-session">Admission / session <span>(if known)</span></label><input id="admission-session" name="admissionSession" placeholder="e.g. 1987/1988"></div>
+        </div>
+        <p class="private-note">Entry and exit years are historical details, not your permanent alumni identity. The school can verify or correct details later.</p>
+      </section>
+
+      <section class="wizard-step" data-step="3" aria-labelledby="profile-title" hidden>
+        <h2 id="profile-title">Alumni profile</h2><p class="step-help">Choose what you want others to see. Your contact details stay private in this preview.</p>
+        <div class="form-group"><label for="profile-photo">Profile photo <span>(optional)</span></label><input id="profile-photo" name="profilePhoto" type="file" accept="image/*"><small>Only selected for this preview; it is not uploaded.</small></div>
+        <div class="form-group"><label for="occupation">Current occupation <span>(optional)</span></label><input id="occupation" name="occupation" autocomplete="organization-title"></div>
+        <div class="form-group"><label for="location">Current location <span>(optional)</span></label><input id="location" name="location" autocomplete="address-level2"></div>
+        <div class="form-group"><label for="biography">Short biography <span>(optional)</span></label><textarea id="biography" name="biography" maxlength="500" rows="4" placeholder="A few sentences about your journey since school."></textarea></div>
+        <fieldset class="visibility-choice"><legend>Public profile information</legend><label class="check-row"><input type="checkbox" name="publicOccupation" checked><span>Occupation and biography may appear in the public alumni archive after verification.</span></label><p>Your email and phone number are private and are not included in public profile information.</p></fieldset>
+      </section>
+
+      <section class="wizard-step" data-step="4" aria-labelledby="evidence-title" hidden>
+        <h2 id="evidence-title">Historical evidence <span>(optional)</span></h2><p class="step-help">You can share old school photos, an ID, certificates, or another school document to help with verification.</p>
+        <label class="check-row"><input id="no-evidence" name="noEvidence" type="checkbox"><span>I don't have any documents</span></label>
+        <div class="form-group" id="evidence-upload-group"><label for="evidence-files">Choose documents or photos</label><input id="evidence-files" name="evidenceFiles" type="file" accept="image/*,.pdf" multiple><small>Files are not uploaded or saved in this frontend preview.</small></div>
+        <p class="private-note">Evidence is for school verification. It will not automatically become public.</p>
+      </section>
+
+      <section class="wizard-step" data-step="5" aria-labelledby="review-title" hidden>
+        <h2 id="review-title">Review your information</h2><p class="step-help">Check the details below. Use Back to make a correction.</p>
+        <dl id="review-summary" class="review-summary"></dl>
+        <p class="private-note">Your email and phone remain private. Evidence is for verification only. This preview does not submit information to the school.</p>
+      </section>
+
+      <p id="wizard-error" class="wizard-error" role="alert" hidden></p>
+      <div class="wizard-controls"><button class="button secondary" id="back-step" type="button" hidden>Back</button><button class="button" id="next-step" type="button">Continue</button></div>
+    </form>
+
+    <section id="registration-confirmation" class="confirmation-card" aria-live="polite" hidden>
+      <span class="eyebrow">FRONTEND PREVIEW</span><h2>Registration received</h2>
+      <p class="lead">Your alumni registration has been submitted and is awaiting school verification.</p>
+      <p class="demo-note"><strong>Demo only:</strong> no registration was sent or stored. The reference below is placeholder data until the backend is implemented.</p>
+      <p>Reference number: <strong class="reference-number">ALM-000184</strong></p>
+      <h3>What happens next</h3><ol><li>The school reviews your information.</li><li>The school may request additional information.</li><li>Once verified, your profile can become part of the school archive.</li></ol>
+      <a class="button" href="alumni/index.html">Return to Alumni</a>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div><img class="footer-logo" src="assets/images/logo.png" alt="St. Joseph's Science and Technical College logo"><strong id="footer-school-name">St. Joseph's Science and Technical College, Makurdi</strong><p>Learning today. Leading tomorrow.</p></div>
+    <div><strong>Quick Links</strong><a href="index.html">Home</a><a href="about.html">About</a><a href="academics.html">Academics</a><a href="departments.html">Departments</a><a href="admissions.html">Admissions</a><a href="news.html">News</a><a href="events.html">Events</a><a href="gallery.html">Gallery</a></div>
+    <div><strong>Alumni</strong><a href="alumni/index.html">Alumni Home</a><a href="alumni/classes.html">Classes &amp; Years</a><a href="student/login.html">Alumni Login</a></div>
+    <div><strong>Contact</strong><a href="contact.html">Contact Us</a><a href="admin/login.html">Staff Login</a><a href="student/login.html">Student Portal</a></div>
+    <div class="footer-connect"><strong>Follow / Connect</strong><div class="footer-socials" aria-label="School social media"><a data-school-social="facebook" aria-label="Facebook" aria-disabled="true" title="Facebook link coming soon"><i class="bx bxl-facebook" aria-hidden="true"></i></a><a data-school-social="x" aria-label="X" aria-disabled="true" title="X link coming soon"><i class="bx bx-x" aria-hidden="true"></i></a><a data-school-social="youtube" aria-label="YouTube" aria-disabled="true" title="YouTube link coming soon"><i class="bx bxl-youtube" aria-hidden="true"></i></a><a data-school-social="whatsapp" aria-label="WhatsApp" aria-disabled="true" title="WhatsApp link coming soon"><i class="bx bxl-whatsapp" aria-hidden="true"></i></a><a data-school-social="instagram" aria-label="Instagram" aria-disabled="true" title="Instagram link coming soon"><i class="bx bxl-instagram" aria-hidden="true"></i></a></div></div>
+    <small>© <span id="year"></span> <span id="footer-school-name-small">St. Joseph's Science and Technical College, Makurdi</span>. All rights reserved.</small>
+  </footer>
+  <script src="js/site-navigation.js"></script><script src="js/social-links.js"></script><script src="js/main.js"></script><script src="js/alumni-onboarding.js"></script>
+</body>
+</html>

@@ -249,6 +249,60 @@ app.use(
 );
 
 
+// Public GitHub Pages frontend origins allowed to read API responses.
+// Same-origin local requests do not depend on CORS, but localhost is
+// included for local frontend/API setups that use separate origins.
+const allowedApiOrigins = new Set([
+  "https://onyilobenedictameh.github.io",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000"
+]);
+
+const publicApiCorsMethods = new Map([
+  ["/api/news", "GET"],
+  ["/api/events", "GET"],
+  ["/api/gallery", "GET"],
+  ["/api/departments", "GET"],
+  ["/api/settings/public", "GET"],
+  ["/api/alumni", "GET"],
+  ["/api/alumni/years", "GET"],
+  ["/api/contact", "POST"]
+]);
+
+app.use("/api", (req, res, next) => {
+  const requestPath = req.originalUrl.split("?", 1)[0];
+  const allowedMethods = publicApiCorsMethods.get(requestPath);
+
+  // Keep cross-origin access limited to routes used by the public site.
+  if (!allowedMethods) {
+    return next();
+  }
+
+  const origin = req.get("Origin");
+  const allowedOrigin = origin && allowedApiOrigins.has(origin);
+
+  if (origin) {
+    res.vary("Origin");
+  }
+
+  if (allowedOrigin) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+
+  if (req.method === "OPTIONS") {
+    if (!allowedOrigin) {
+      return res.sendStatus(403);
+    }
+
+    res.setHeader("Access-Control-Allow-Methods", `${allowedMethods}, OPTIONS`);
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    return res.sendStatus(204);
+  }
+
+  next();
+});
+
+
 app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000,
