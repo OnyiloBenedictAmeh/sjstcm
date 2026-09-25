@@ -1180,8 +1180,14 @@ async function loadSchoolSettings() {
     $$(".brand").forEach(
       element => {
 
-        element.textContent =
-          brandText;
+        const fullName =
+          $(".brand-full", element);
+
+        if (fullName) {
+          fullName.textContent = schoolName;
+        } else if (!$("img", element)) {
+          element.textContent = brandText;
+        }
 
       }
     );
@@ -1455,4 +1461,4 @@ if (
 
   load();
 
-} 
+}
