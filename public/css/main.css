@@ -727,13 +727,27 @@ select:focus-visible {
   gap: 15px;
 }
 
-.gallery img {
+.gallery figure,
+#home-gallery figure {
+  min-width: 0;
+  margin: 0;
+}
+
+.gallery img,
+#home-gallery img {
   width: 100%;
   aspect-ratio: 4 / 3;
 
   object-fit: cover;
 
   border-radius: 14px;
+}
+
+.gallery figcaption,
+#home-gallery figcaption {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: .85rem;
 }
 
 
@@ -1153,4 +1167,14 @@ tr:last-child td {
     transition: none !important;
   }
 
+}
+
+.news-card > img,
+.event-card > img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  margin-bottom: 16px;
+  border-radius: 12px;
+  object-fit: cover;
 }

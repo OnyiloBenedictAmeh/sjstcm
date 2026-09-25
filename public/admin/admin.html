@@ -918,9 +918,45 @@
 
               <h2>Departments</h2>
 
-              <p>View the departments currently configured for the school.</p>
+              <p>Manage the departments shown on the public departments page.</p>
             </div>
+
+            <button class="button" id="new-department-button" type="button">
+              + Add Department
+            </button>
           </div>
+
+          <article class="panel hidden" id="department-form-panel">
+            <div class="panel-header">
+              <div>
+                <span class="panel-kicker"> CREATE </span>
+                <h3>Add a school department</h3>
+              </div>
+              <button class="icon-button" id="close-department-form" type="button" aria-label="Close department form">×</button>
+            </div>
+
+            <form id="department-form" class="admin-form">
+              <div class="form-grid">
+                <label>
+                  <span>Department name</span>
+                  <input name="name" required maxlength="120" />
+                </label>
+                <label>
+                  <span>Department head <small>(optional)</small></span>
+                  <input name="head" maxlength="120" />
+                </label>
+              </div>
+              <label>
+                <span>Description</span>
+                <textarea name="description" rows="4"></textarea>
+              </label>
+              <div class="form-actions">
+                <button type="button" class="button secondary" id="cancel-department">Cancel</button>
+                <button type="submit" class="button">Save Department</button>
+              </div>
+              <p class="form-status" id="department-form-status" role="status"></p>
+            </form>
+          </article>
 
           <article class="panel">
             <div class="panel-header">
@@ -944,15 +980,6 @@
             </div>
           </article>
 
-          <div class="info-banner">
-            <strong> Department editing </strong>
-
-            <p>
-              The current backend exposes department retrieval through
-              <code>/api/departments</code>, but does not yet expose an
-              administrative create/edit/delete API.
-            </p>
-          </div>
         </section>
 
         <!-- =====================================================

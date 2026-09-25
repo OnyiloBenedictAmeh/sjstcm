@@ -3670,8 +3670,68 @@ async function loadDepartments() {
       error
     );
 
+    setHTML(
+      "#departments-list",
+      `<div class="empty-state">${escapeHTML(
+        error.message || "Unable to load departments."
+      )}</div>`
+    );
+
   }
 }
+
+
+$("#new-department-button")
+  ?.addEventListener("click", () => {
+    $("#department-form-panel")
+      ?.classList.remove("hidden");
+    $("#department-form [name='name']")?.focus();
+  });
+
+
+["#close-department-form", "#cancel-department"]
+  .forEach(selector => {
+    $(selector)?.addEventListener("click", () => {
+      $("#department-form-panel")
+        ?.classList.add("hidden");
+    });
+  });
+
+
+$("#department-form")
+  ?.addEventListener("submit", async event => {
+    event.preventDefault();
+
+    const form = event.currentTarget;
+    const data = Object.fromEntries(new FormData(form));
+
+    try {
+      setMessage(
+        "#department-form-status",
+        "Saving department..."
+      );
+
+      await api("/api/admin/departments", {
+        method: "POST",
+        body: JSON.stringify(data)
+      });
+
+      form.reset();
+      setMessage(
+        "#department-form-status",
+        "Department saved and published.",
+        "success"
+      );
+      showToast("Department added to the public directory.");
+      await loadDepartments();
+    } catch (error) {
+      setMessage(
+        "#department-form-status",
+        error.message,
+        "error"
+      );
+    }
+  });
 
 
 // ============================================================

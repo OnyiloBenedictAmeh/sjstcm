@@ -762,6 +762,49 @@ app.get(
 );
 
 
+app.post(
+  "/api/admin/departments",
+  auth,
+  allow("ADMIN", "STAFF"),
+  async (req, res) => {
+    const name =
+      String(req.body.name || "").trim();
+
+    if (!name) {
+      return res.status(400).json({
+        error: "Department name is required."
+      });
+    }
+
+    try {
+      const department =
+        await prisma.department.create({
+          data: {
+            name,
+            description:
+              String(req.body.description || "").trim() || null,
+            head:
+              String(req.body.head || "").trim() || null
+          }
+        });
+
+      return res.status(201).json(department);
+    } catch (error) {
+      if (error.code === "P2002") {
+        return res.status(409).json({
+          error: "A department with that name already exists."
+        });
+      }
+
+      console.error("CREATE DEPARTMENT ERROR:", error);
+      return res.status(500).json({
+        error: "Unable to create department."
+      });
+    }
+  }
+);
+
+
 // ============================================================
 // PUBLIC ALUMNI
 // ============================================================

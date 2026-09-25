@@ -457,6 +457,12 @@ function newsCard(news) {
 
     <article class="card news-card">
 
+      ${
+        news.imageUrl
+          ? `<img src="${esc(news.imageUrl)}" alt="${title}" loading="lazy">`
+          : ""
+      }
+
       <span class="eyebrow">
         ${esc(
           news.publishedAt
@@ -593,6 +599,12 @@ function eventCard(event) {
   return `
 
     <article class="card event-card">
+
+      ${
+        event.imageUrl
+          ? `<img src="${esc(event.imageUrl)}" alt="${esc(event.title)}" loading="lazy">`
+          : ""
+      }
 
       <span class="eyebrow">
         ${esc(
@@ -874,11 +886,13 @@ function galleryCard(photo) {
 
 async function loadGallery() {
 
-  const container =
-    $("#gallery-list");
+  const containers = [
+    $("#gallery-list"),
+    $("#home-gallery")
+  ].filter(Boolean);
 
 
-  if (!container) return;
+  if (!containers.length) return;
 
 
   try {
@@ -895,17 +909,20 @@ async function loadGallery() {
         : [];
 
 
-    setHTML(
-      "#gallery-list",
-      items.length
-        ? items
-            .map(galleryCard)
-            .join("")
-        : emptyCard(
-            "Gallery",
-            "The school gallery is coming soon."
-          )
-    );
+    containers.forEach(container => {
+      const visibleItems =
+        container.id === "home-gallery"
+          ? items.slice(0, 6)
+          : items;
+
+      container.innerHTML =
+        visibleItems.length
+          ? visibleItems.map(galleryCard).join("")
+          : emptyCard(
+              "Gallery",
+              "The school gallery is coming soon."
+            );
+    });
 
 
   } catch (error) {
@@ -916,13 +933,12 @@ async function loadGallery() {
     );
 
 
-    setHTML(
-      "#gallery-list",
-      emptyCard(
+    containers.forEach(container => {
+      container.innerHTML = emptyCard(
         "Gallery",
         "Gallery could not be loaded right now."
-      )
-    );
+      );
+    });
 
   }
 
