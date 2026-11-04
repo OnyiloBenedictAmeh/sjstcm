@@ -593,38 +593,38 @@ async function loadOverview() {
       {
         label: "Students",
         value: overview.students,
-        icon: "♙"
+        icon: "bx bx-group"
       },
 
       {
         label: "Alumni",
         value: overview.alumni,
-        icon: "◎"
+        icon: "bx bx-user-voice"
       },
 
       {
         label: "News Articles",
         value: overview.news,
-        icon: "▣"
+        icon: "bx bx-news"
       },
 
       {
         label: "Events",
         value: overview.events,
-        icon: "◷"
+        icon: "bx bx-calendar-event"
       },
 
       {
         label: "Unread Messages",
         value: overview.unreadMessages,
-        icon: "✉"
+        icon: "bx bx-envelope"
       },
 
       {
         label: "Pending Requests",
         value:
           overview.pendingUpdateRequests,
-        icon: "!"
+        icon: "bx bx-time-five"
       }
 
     ];
@@ -637,7 +637,7 @@ async function loadOverview() {
         <article class="stat-card">
 
           <div class="stat-icon">
-            ${item.icon}
+            <i class="${item.icon}" aria-hidden="true"></i>
           </div>
 
           <div>
@@ -4642,12 +4642,20 @@ $("#add-class-btn")
   ?.addEventListener(
     "click",
     () => {
-
       openClassModal();
-
     }
   );
 
+
+$("#edit-class-btn")
+  ?.addEventListener(
+    "click",
+    () => {
+      if (window.selectedAdminClass) {
+        openClassModal(window.selectedAdminClass);
+      }
+    }
+  );
 
 $$("[data-close-class-modal]")
   .forEach(button => {
@@ -4668,38 +4676,52 @@ $("#class-form")
   ?.addEventListener(
     "submit",
     async event => {
-
       event.preventDefault();
 
+      const classId = $("#class-id")?.value.trim();
+      const payload = {
+        name: $("#class-name")?.value.trim(),
+        level: $("#class-level")?.value.trim(),
+        classTeacher: $("#class-teacher")?.value.trim(),
+        description: $("#class-description")?.value.trim()
+      };
+      const status = classId ? "Updating class..." : "Creating class...";
 
-      /*
-       * IMPORTANT:
-       *
-       * The current backend you supplied only has
-       * GET /api/admin/classes.
-       *
-       * Therefore we do not pretend that POST/PUT
-       * class endpoints already exist.
-       *
-       * Once those endpoints are added to server/index.js,
-       * this form can call them.
-       */
+      setMessage("#class-form-status", status);
 
-      setMessage(
-        "#class-form-status",
-        "Class saving API is not connected yet.",
-        "error"
-      );
+      try {
+        await api(
+          classId
+            ? `/api/admin/classes/${encodeURIComponent(classId)}`
+            : "/api/admin/classes",
+          {
+            method: classId ? "PUT" : "POST",
+            body: JSON.stringify(payload)
+          }
+        );
 
+        setMessage(
+          "#class-form-status",
+          classId ? "Class updated successfully." : "Class created successfully.",
+          "success"
+        );
+        showToast(classId ? "Class updated." : "Class created.");
+        closeClassModal();
+        await loadClasses();
 
-      showToast(
-        "Class create/edit API still needs to be added.",
-        "error"
-      );
-
+        if (classId) {
+          await openClassDetail(classId);
+        }
+      } catch (error) {
+        setMessage(
+          "#class-form-status",
+          error.message || "Unable to save class.",
+          "error"
+        );
+        showToast(error.message || "Unable to save class.", "error");
+      }
     }
   );
-
 
 // ============================================================
 // LOGOUT

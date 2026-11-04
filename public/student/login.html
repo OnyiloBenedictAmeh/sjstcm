@@ -34,50 +34,60 @@
     rel="stylesheet"
     href="css/responsive.css"
   >
+  <link rel="stylesheet" href="css/student-login.css">
 </head>
 
-<body>
+<body class="student-login-body">
 
   <!-- =========================
        PORTAL PAGE
   ========================== -->
 
-  <main class="auth-page">
+  <main class="student-login-page">
 
-    <div class="auth-card">
+    <div class="student-login-shell">
+      <section class="student-login-intro" aria-labelledby="student-login-title">
 
       <!-- BRAND -->
 
       <a
         href="index.html"
-        class="auth-brand"
+        class="student-login-brand"
         id="portal-school-name"
-        aria-label="Return to school website"
+        aria-label="St. Joseph's Science and Technical College home"
       >
-        St. Joseph's Science and Technical College, Makurdi
+        <img src="assets/images/logo.png" alt="St. Joseph's Science and Technical College logo">
       </a>
 
 
       <!-- INTRO -->
 
-      <span class="eyebrow">
-        STUDENT PORTAL
+      <span class="student-login-kicker">
+        SJSTCM PORTAL
       </span>
 
-      <h1>
-        Welcome back.
+      <h1 class="student-login-title">
+        Student Portal
       </h1>
 
-      <p class="lead">
+      <p class="student-login-description">
         Sign in to access your student or alumni account.
       </p>
+      </section>
 
 
       <!-- LOGIN FORM -->
 
+      <section class="student-login-panel" aria-labelledby="portal-login-title">
+        <div class="student-login-panel-heading">
+          <span class="student-login-secure"><i class="bx bx-lock-alt" aria-hidden="true"></i> Secure sign-in</span>
+          <h2 id="portal-login-title">Portal Login</h2>
+          <p>Enter your account details to continue.</p>
+        </div>
+
       <form
         id="login-form"
-        class="form"
+        class="form student-login-form"
         method="post"
         action="api/auth/login"
         novalidate
@@ -123,9 +133,10 @@
               id="toggle-password"
               class="password-toggle"
               aria-label="Show password"
+              aria-controls="login-password"
               aria-pressed="false"
             >
-              Show
+              <i class="bx bx-show" aria-hidden="true"></i>
             </button>
 
           </div>
@@ -157,7 +168,7 @@
 
       <!-- ADDITIONAL LINKS -->
 
-      <div class="auth-links">
+      <div class="student-login-links">
 
         <a href="index.html">
           ← Back to website
@@ -169,10 +180,12 @@
 
       </div>
 
+      </section>
+
 
       <!-- PORTAL NOTE -->
 
-      <div class="auth-note">
+      <div class="student-login-access">
 
         <strong>
           Student & Alumni Access

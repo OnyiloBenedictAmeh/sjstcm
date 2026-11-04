@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Campus photo placeholder</title><desc id="desc">Illustrated blue and gold school campus building placeholder.</desc>
+  <defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#dcecff"/><stop offset="1" stop-color="#fff"/></linearGradient><linearGradient id="ground" x2="0" y2="1"><stop stop-color="#d8e8d6"/><stop offset="1" stop-color="#a9c4a0"/></linearGradient></defs>
+  <path fill="url(#sky)" d="M0 0h1600v580H0z"/><circle cx="1280" cy="180" r="90" fill="#f7c900" opacity=".75"/><path fill="#fff" opacity=".8" d="M120 170c20-60 110-70 145-20 55-48 130-8 132 48H100c0-12 8-22 20-28m850-80c30-75 130-65 155-10 60-35 130 8 125 65H950c0-25 8-43 20-55"/>
+  <path fill="url(#ground)" d="M0 620h1600v280H0z"/><path fill="#174b85" d="M260 400h1080v300H260z"/><path fill="#0b315b" d="m200 415 600-245 600 245z"/><path fill="#f7c900" d="M220 405h1160v28H220z"/><path fill="#fff" d="M335 485h135v215H335zm220 0h135v215H555zm220 0h135v215H775zm220 0h135v215H995zm220 0h65v215h-65z"/><path fill="#0b315b" d="M730 535h140v165H730z"/><path fill="#f7c900" d="M0 710h1600v18H0z"/><text x="800" y="825" text-anchor="middle" fill="#174b85" font-family="Arial,sans-serif" font-size="38" font-weight="700" letter-spacing="8">CAMPUS PHOTO PLACEHOLDER</text>
+</svg>

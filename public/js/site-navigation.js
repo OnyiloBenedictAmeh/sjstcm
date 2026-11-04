@@ -7,30 +7,144 @@ function setMenuOpen(toggle, navigation, isOpen) {
   toggle.setAttribute("aria-label", isOpen ? "Close navigation menu" : "Open navigation menu");
 }
 
-document.addEventListener("click", event => {
-  const toggle = event.target.closest(".menu-toggle");
-  if (toggle) {
-    const header = toggle.closest(".site-header");
-    const navigation = header?.querySelector("nav");
+function normalizedPath(pathname) {
+  if (pathname === "/") return "/index.html";
+  return pathname.replace(/\/$/, "") || "/index.html";
+}
+
+function bindMenuToggle(header, navigation) {
+  const toggle = header.querySelector(".menu-toggle");
+  if (!toggle) return;
+
+  toggle.setAttribute("aria-controls", navigation.id);
+  if (toggle.dataset.menuToggleBound === "true") return;
+
+  toggle.addEventListener("click", () => {
+    const isOpening = toggle.getAttribute("aria-expanded") !== "true";
+    if (isOpening) navigation.querySelectorAll(".nav-group[open]").forEach(group => group.removeAttribute("open"));
+    setMenuOpen(toggle, navigation, isOpening);
+  });
+  toggle.dataset.menuToggleBound = "true";
+}
+
+function renderSiteNavigation() {
+  const currentPath = normalizedPath(window.location.pathname);
+
+  document.querySelectorAll(".site-header").forEach(header => {
+    const navigation = header.querySelector("nav");
     if (!navigation) return;
-    setMenuOpen(toggle, navigation, toggle.getAttribute("aria-expanded") !== "true");
+
+    navigation.id = "main-navigation";
+    navigation.setAttribute("aria-label", "Main navigation");
+    navigation.innerHTML = `
+      <a href="index.html">Home</a>
+      <details class="nav-group" name="site-navigation-menu">
+        <summary>School</summary>
+        <div class="nav-submenu">
+          <a href="about.html">About the School</a>
+          <a href="gallery.html">School Life</a>
+        </div>
+      </details>
+      <details class="nav-group" name="site-navigation-menu">
+        <summary>Learning</summary>
+        <div class="nav-submenu">
+          <a href="academics.html">Academics</a>
+          <a href="departments.html">Departments</a>
+          <a href="admissions.html">Admissions</a>
+        </div>
+      </details>
+      <details class="nav-group" name="site-navigation-menu">
+        <summary>News &amp; Events</summary>
+        <div class="nav-submenu">
+          <a href="news.html">News</a>
+          <a href="events.html">Events</a>
+        </div>
+      </details>
+      <a href="alumni/index.html">Alumni</a>
+      <a href="contact.html">Contact</a>
+      <a class="nav-button" href="student/login.html">Student Portal</a>
+    `;
+
+    navigation.addEventListener("click", event => {
+      const summary = event.target instanceof Element
+        ? event.target.closest(".nav-group > summary")
+        : null;
+      const selectedGroup = summary?.parentElement;
+      if (!selectedGroup) return;
+
+      window.requestAnimationFrame(() => {
+        if (!selectedGroup.open) return;
+        navigation.querySelectorAll(".nav-group[open]").forEach(group => {
+          if (group !== selectedGroup) group.open = false;
+        });
+      });
+    });
+
+    bindMenuToggle(header, navigation);
+
+    navigation.querySelectorAll("a[href]").forEach(link => {
+      const linkPath = normalizedPath(new URL(link.href, document.baseURI).pathname);
+      const isAlumniPage = linkPath === "/alumni/index.html" && currentPath.startsWith("/alumni/");
+      const isStudentPage = linkPath === "/student/login.html" && currentPath.startsWith("/student/");
+      if (linkPath !== currentPath && !isAlumniPage && !isStudentPage) return;
+
+      link.setAttribute("aria-current", "page");
+      link.classList.add("active");
+      link.closest(".nav-group")?.classList.add("active");
+    });
+
+    navigation.querySelectorAll(".nav-group").forEach(group => {
+      if (group.querySelector("a[aria-current='page']")) {
+        group.querySelector("summary")?.setAttribute("aria-current", "page");
+      }
+    });
+  });
+}
+
+window.renderSiteNavigation = renderSiteNavigation;
+renderSiteNavigation();
+
+document.addEventListener("click", event => {
+  const target = event.target instanceof Element ? event.target : null;
+  const link = target?.closest(".site-header nav a");
+  if (link) {
+    const header = link.closest(".site-header");
+    const toggle = header?.querySelector(".menu-toggle");
+    const navigation = header?.querySelector("nav");
+    if (toggle && navigation) setMenuOpen(toggle, navigation, false);
+    navigation?.querySelectorAll(".nav-group[open]").forEach(group => group.removeAttribute("open"));
     return;
   }
 
-  const link = event.target.closest(".site-header nav a");
-  if (!link) return;
-  const header = link.closest(".site-header");
-  const toggleButton = header?.querySelector(".menu-toggle");
-  const navigation = header?.querySelector("nav");
-  if (toggleButton && navigation) setMenuOpen(toggleButton, navigation, false);
+  if (!target?.closest(".site-header")) {
+    document.querySelectorAll(".site-header .nav-group[open]").forEach(group => group.removeAttribute("open"));
+    document.querySelectorAll('.site-header .menu-toggle[aria-expanded="true"]').forEach(toggle => {
+      const navigation = toggle.closest(".site-header")?.querySelector("nav");
+      if (navigation) setMenuOpen(toggle, navigation, false);
+    });
+  }
 });
 
 document.addEventListener("keydown", event => {
   if (event.key !== "Escape") return;
-  const header = document.querySelector('.site-header .menu-toggle[aria-expanded="true"]')?.closest(".site-header");
-  const toggle = header?.querySelector(".menu-toggle");
-  const navigation = header?.querySelector("nav");
-  if (!toggle || !navigation) return;
-  setMenuOpen(toggle, navigation, false);
-  toggle.focus();
+  const openGroup = document.querySelector(".site-header .nav-group[open]");
+  if (openGroup) {
+    openGroup.removeAttribute("open");
+    openGroup.querySelector("summary")?.focus();
+  }
+
+  const toggle = document.querySelector('.site-header .menu-toggle[aria-expanded="true"]');
+  const navigation = toggle?.closest(".site-header")?.querySelector("nav");
+  if (toggle && navigation) {
+    setMenuOpen(toggle, navigation, false);
+    toggle.focus();
+  }
+});
+
+window.addEventListener("resize", () => {
+  if (window.innerWidth <= 1120) return;
+  document.querySelectorAll(".site-header .menu-toggle[aria-expanded='true']").forEach(toggle => {
+    const navigation = toggle.closest(".site-header")?.querySelector("nav");
+    if (navigation) setMenuOpen(toggle, navigation, false);
+  });
 });

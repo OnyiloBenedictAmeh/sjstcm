@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <title>Admin Login</title>
+  <title>Administration | SJSTCM</title>
 <link
     rel="icon"
     type="image/png"
@@ -14,9 +14,10 @@
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
   <link rel="stylesheet" href="css/responsive.css">
+  <link rel="stylesheet" href="css/admin.css">
 </head>
 
-<body>
+<body class="admin-login-body">
 
   <main class="auth-page">
 
@@ -26,6 +27,10 @@
       method="post"
       action="api/auth/login"
     >
+
+      <a class="admin-login-brand" href="index.html" aria-label="St. Joseph's Science and Technical College home">
+        <img src="assets/images/logo.png" alt="St. Joseph's Science and Technical College logo" />
+      </a>
 
       <span class="eyebrow">ADMINISTRATION</span>
 
@@ -39,13 +44,26 @@
         required
       >
 
-      <input
-        type="password"
-        name="password"
-        placeholder="Password"
-        autocomplete="current-password"
-        required
-      >
+      <div class="password-field">
+        <input
+          id="login-password"
+          type="password"
+          name="password"
+          placeholder="Password"
+          autocomplete="current-password"
+          required
+        >
+        <button
+          type="button"
+          id="toggle-password"
+          class="password-toggle"
+          aria-label="Show password"
+          aria-controls="login-password"
+          aria-pressed="false"
+        >
+          <i class="bx bx-show" aria-hidden="true"></i>
+        </button>
+      </div>
 
       <button
         type="submit"
