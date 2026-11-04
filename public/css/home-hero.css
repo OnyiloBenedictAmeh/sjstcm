@@ -46,9 +46,11 @@
 .home-hero-copy {
   position: relative;
   z-index: 1;
-  width: min(64%, 880px);
-  padding: 64px 0 64px 7.5%;
-  background: linear-gradient(90deg, rgb(255 255 255 / 97%) 0%, rgb(255 255 255 / 95%) 84%, rgb(255 255 255 / 0%) 100%);
+  width: min(58%, 800px);
+  padding: 64px 3% 64px 7.5%;
+  background: linear-gradient(90deg, rgb(255 255 255 / 78%) 0%, rgb(255 255 255 / 70%) 70%, rgb(255 255 255 / 0%) 100%);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
   color: var(--ink);
 }
 
@@ -62,7 +64,7 @@
   letter-spacing: -.045em;
 }
 
-.home-hero-copy p { max-width: 590px; margin: 18px 0 0; color: #52657c; font-size: 1.04rem; }
+.home-hero-copy p { max-width: 540px; margin: 18px 0 0; color: #52657c; font-size: 1.04rem; }
 .home-hero-copy .actions { margin-top: 25px; }
 .home-hero-copy .button.secondary { background: rgb(255 255 255 / 86%); }
 

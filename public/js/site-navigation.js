@@ -104,6 +104,28 @@ function renderSiteNavigation() {
 window.renderSiteNavigation = renderSiteNavigation;
 renderSiteNavigation();
 
+function initializeBackToTop() {
+  if (!document.querySelector(".site-header") || document.querySelector(".back-to-top")) return;
+
+  const button = document.createElement("button");
+  button.className = "back-to-top";
+  button.type = "button";
+  button.setAttribute("aria-label", "Back to top");
+  button.innerHTML = '<span aria-hidden="true">↑</span>';
+  button.hidden = window.scrollY <= 400;
+  button.addEventListener("click", () => {
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+  });
+
+  window.addEventListener("scroll", () => {
+    button.hidden = window.scrollY <= 400;
+  }, { passive: true });
+  document.body.append(button);
+}
+
+initializeBackToTop();
+
 document.addEventListener("click", event => {
   const target = event.target instanceof Element ? event.target : null;
   const link = target?.closest(".site-header nav a");
