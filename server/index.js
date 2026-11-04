@@ -358,6 +358,8 @@ function sign(user) {
 
 function auth(req, res, next) {
 
+  res.set("Cache-Control", "private, no-store");
+
   const token =
     req.cookies.school_token;
 
@@ -378,7 +380,6 @@ function auth(req, res, next) {
         token,
         process.env.JWT_SECRET
       );
-
 
     next();
 
@@ -453,7 +454,11 @@ const requirePermission = (...requiredPermissions) =>
 
     try {
       const granted = await getCurrentPermissions(req.user.sub);
-      if (requiredPermissions.every(permission => granted.includes(permission))) {
+      const hasPermission = permission =>
+        granted.includes(permission) ||
+        (permission === 'STUDENTS_VIEW' && granted.includes('STUDENTS_MANAGE'));
+
+      if (requiredPermissions.every(hasPermission)) {
         return next();
       }
 
@@ -578,6 +583,19 @@ app.post(
 
       }
 
+      if (user.role === "STUDENT") {
+        const student = await prisma.student.findUnique({
+          where: { userId: user.id },
+          select: { id: true, status: true }
+        });
+
+        if (!student || student.status === "INACTIVE") {
+          return res.status(403).json({
+            error: "This account is not currently active. Please contact the school."
+          });
+        }
+      }
+
 
       res.cookie(
         "school_token",
@@ -585,6 +603,8 @@ app.post(
         {
 
           httpOnly: true,
+
+          path: "/",
 
           sameSite: "lax",
 
@@ -634,7 +654,13 @@ app.post(
   (_, res) => {
 
     res.clearCookie(
-      "school_token"
+      "school_token",
+      {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/"
+      }
     );
 
 
@@ -1352,63 +1378,50 @@ app.post(
 app.get(
   "/api/student/profile",
   auth,
-  allow(
-    "STUDENT",
-    "ADMIN",
-    "STAFF"
-  ),
+  allow("STUDENT"),
   async (req, res) => {
 
     try {
 
       const student =
         await prisma.student.findFirst({
-
-          where:
-            req.user.role ===
-            "STUDENT"
-
-              ? {
-                  userId:
-                    req.user.sub
-                }
-
-              : {
-                  studentId:
-                    req.query.studentId
-                },
-
-          include: {
+          where: { userId: req.user.sub, status: { not: "INACTIVE" } },
+          select: {
+            id: true,
+            studentId: true,
+            firstName: true,
+            middleName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+            dateOfBirth: true,
+            gender: true,
+            photoUrl: true,
+            status: true,
 
             enrollments: {
-
-              include: {
-                class: true,
-                session: true
+              select: {
+                id: true,
+                status: true,
+                class: { select: { id: true, name: true, level: true } },
+                session: { select: { id: true, name: true, isCurrent: true } }
               },
-
-              orderBy: {
-                session: {
-                  name: "desc"
-                }
-              }
-
+              orderBy: { session: { name: "desc" } }
             },
 
             academicRecords: {
-
-              include: {
-                session: true
+              select: {
+                subject: true,
+                caScore: true,
+                examScore: true,
+                totalScore: true,
+                grade: true,
+                remark: true,
+                session: { select: { name: true } }
               },
-
-              orderBy: {
-                createdAt: "desc"
-              }
-
+              orderBy: [{ session: { name: "desc" } }, { subject: "asc" }]
             }
-
           }
-
         });
 
 
@@ -1422,7 +1435,31 @@ app.get(
       }
 
 
-      res.json(student);
+      const currentEnrollment = student.enrollments.find(
+        enrollment => enrollment.session.isCurrent && enrollment.status === "ENROLLED"
+      ) || null;
+      const classmates = currentEnrollment
+        ? await prisma.enrollment.findMany({
+            where: {
+              classId: currentEnrollment.class.id,
+              sessionId: currentEnrollment.session.id,
+              status: "ENROLLED",
+              studentId: { not: student.id }
+            },
+            select: {
+              student: {
+                select: { studentId: true, firstName: true, middleName: true, lastName: true }
+              }
+            },
+            orderBy: { student: { lastName: "asc" } }
+          })
+        : [];
+
+      res.json({
+        ...student,
+        currentEnrollment,
+        classmates: classmates.map(({ student: classmate }) => classmate)
+      });
 
 
     } catch (error) {
@@ -1532,10 +1569,7 @@ app.get(
 app.get(
   "/api/admin/students",
   auth,
-  allow(
-    "ADMIN",
-    "STAFF"
-  ),
+  requirePermission("STUDENTS_VIEW"),
   async (req, res) => {
 
     try {
@@ -1635,10 +1669,7 @@ app.get(
 app.post(
   "/api/admin/students",
   auth,
-  allow(
-    "ADMIN",
-    "STAFF"
-  ),
+  requirePermission("STUDENTS_MANAGE"),
   async (req, res) => {
 
     req.uploadType =
@@ -1931,10 +1962,7 @@ app.post(
 app.put(
   "/api/admin/students/:id",
   auth,
-  allow(
-    "ADMIN",
-    "STAFF"
-  ),
+  requirePermission("STUDENTS_MANAGE"),
   async (req, res) => {
 
     try {
@@ -2112,10 +2140,7 @@ app.put(
 app.post(
   "/api/admin/students/:id/photo",
   auth,
-  allow(
-    "ADMIN",
-    "STAFF"
-  ),
+  requirePermission("STUDENTS_MANAGE"),
   async (req, res) => {
 
     req.uploadType =

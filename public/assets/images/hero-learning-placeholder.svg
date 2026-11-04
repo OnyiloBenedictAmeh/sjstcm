@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Learning photo placeholder</title><desc id="desc">Illustrated classroom and learning equipment placeholder.</desc>
+  <defs><linearGradient id="room" x2="0" y2="1"><stop stop-color="#e6f1ff"/><stop offset="1" stop-color="#b7d2ec"/></linearGradient></defs>
+  <path fill="url(#room)" d="M0 0h1600v900H0z"/><path fill="#fff" d="M140 100h1320v490H140z"/><path fill="#f7c900" d="M140 100h1320v24H140z"/><path fill="#174b85" d="M205 180h510v300H205z"/><path fill="#fff" d="M235 210h450v240H235z"/><path fill="#0b315b" d="M275 285h200v14H275zm0 55h300v12H275zm0 50h240v12H275z"/><path fill="#174b85" d="M790 335h570v32H790zm50 35h35v205h-35zm420 0h35v205h-35z"/><path fill="#f7c900" d="M680 560h740v35H680z"/><path fill="#174b85" d="M180 640h1240v28H180zm60 30h38v108h-38zm1080 0h38v108h-38z"/><path fill="#0b315b" d="M340 610h170v35H340zm530 0h170v35H870z"/><text x="800" y="835" text-anchor="middle" fill="#174b85" font-family="Arial,sans-serif" font-size="38" font-weight="700" letter-spacing="8">LEARNING PHOTO PLACEHOLDER</text>
+</svg>

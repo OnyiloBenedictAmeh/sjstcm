@@ -10,6 +10,33 @@ const form =
     "#login-form"
   );
 
+async function redirectIfAuthenticated() {
+  if (!form) return;
+
+  try {
+    const response = await fetch("/api/auth/me", { credentials: "include", cache: "no-store" });
+    if (!response.ok) return;
+    const user = await response.json();
+    const destination = user.role === "ADMIN" || user.role === "STAFF"
+      ? "admin/"
+      : user.role === "STUDENT"
+        ? "student/index.html"
+        : user.role === "ALUMNI"
+          ? "alumni/index.html"
+          : null;
+    if (destination) window.location.replace(new URL(destination, document.baseURI).href);
+  } catch {
+    // Keep the login form available when session lookup is temporarily unavailable.
+  }
+}
+
+redirectIfAuthenticated();
+
+const loginStatus = document.querySelector("#login-status");
+if (loginStatus && new URLSearchParams(window.location.search).get("notice") === "session-expired") {
+  loginStatus.textContent = "Your session has expired. Please sign in again.";
+}
+
 
 const passwordToggle =
   document.querySelector("#toggle-password");
@@ -26,8 +53,9 @@ passwordToggle?.addEventListener("click", () => {
   passwordInput.type =
     showPassword ? "text" : "password";
 
-  passwordToggle.textContent =
-    showPassword ? "Hide" : "Show";
+  const passwordIcon = passwordToggle.querySelector("i");
+  passwordIcon?.classList.toggle("bx-show", !showPassword);
+  passwordIcon?.classList.toggle("bx-hide", showPassword);
 
   passwordToggle.setAttribute(
     "aria-label",
@@ -223,8 +251,7 @@ form?.addEventListener(
 
 
       if (
-        result.role === "STUDENT" ||
-        result.role === "ALUMNI"
+        result.role === "STUDENT"
       ) {
 
         window.location.href =
@@ -232,6 +259,12 @@ form?.addEventListener(
 
         return;
 
+      }
+
+      if (result.role === "ALUMNI") {
+        window.location.href =
+          new URL("alumni/index.html", document.baseURI).href;
+        return;
       }
 
 

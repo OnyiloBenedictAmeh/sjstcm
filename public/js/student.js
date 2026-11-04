@@ -44,22 +44,6 @@ function formatDate(value) {
 }
 
 
-function getCurrentEnrollment(student) {
-
-  if (
-    !student?.enrollments?.length
-  ) {
-
-    return null;
-
-  }
-
-
-  return student.enrollments[0];
-
-}
-
-
 // ============================================================
 // LOAD PORTAL
 // ============================================================
@@ -76,7 +60,8 @@ async function load() {
       await fetch(
         "/api/auth/me",
         {
-          credentials: "include"
+          credentials: "include",
+          cache: "no-store"
         }
       );
 
@@ -84,7 +69,7 @@ async function load() {
     if (!authResponse.ok) {
 
       window.location.href =
-        "student/login.html";
+        "student/login.html?notice=session-expired";
 
       return;
 
@@ -99,15 +84,14 @@ async function load() {
     // ROLE CHECK
     // --------------------------------------------------------
 
-    if (
-      ![
-        "STUDENT",
-        "ALUMNI"
-      ].includes(me.role)
-    ) {
+    if (me.role !== "STUDENT") {
 
-      window.location.href =
-        "admin/admin.html";
+      const target = me.role === "ADMIN" || me.role === "STAFF"
+        ? "admin/"
+        : me.role === "ALUMNI"
+          ? "alumni/index.html"
+          : "student/login.html";
+      window.location.replace(new URL(target, document.baseURI).href);
 
       return;
 
@@ -122,7 +106,8 @@ async function load() {
       await fetch(
         "/api/student/profile",
         {
-          credentials: "include"
+          credentials: "include",
+          cache: "no-store"
         }
       );
 
@@ -132,7 +117,7 @@ async function load() {
     ) {
 
       window.location.href =
-        "student/login.html";
+        "student/login.html?notice=session-expired";
 
       return;
 
@@ -158,10 +143,7 @@ async function load() {
     // CURRENT ENROLLMENT
     // --------------------------------------------------------
 
-    const enrollment =
-      getCurrentEnrollment(
-        student
-      );
+    const enrollment = student.currentEnrollment;
 
 
     // --------------------------------------------------------
@@ -323,13 +305,7 @@ async function load() {
           <h3>Email</h3>
 
           <p>
-            ${
-              student.email
-                ? escapeHTML(
-                    student.email
-                  )
-                : "—"
-            }
+            ${escapeHTML(student.email || me.email || "—")}
           </p>
 
         </article>
@@ -404,6 +380,11 @@ async function load() {
 
           </article>
 
+          <h3>Classmates</h3>
+          ${student.classmates?.length
+            ? `<ul class="classmate-list">${student.classmates.map(classmate => `<li>${escapeHTML([classmate.firstName, classmate.middleName, classmate.lastName].filter(Boolean).join(" "))}</li>`).join("")}</ul>`
+            : '<p>No classmates are currently listed for this class.</p>'}
+
         `;
 
       } else {
@@ -426,6 +407,8 @@ async function load() {
             </p>
 
           </article>
+
+          <p>Classmates will appear after a current enrollment is recorded.</p>
 
         `;
 
@@ -503,6 +486,10 @@ async function load() {
                     Session
                   </th>
 
+                  <th>
+                    Class
+                  </th>
+
                 </tr>
 
               </thead>
@@ -573,6 +560,10 @@ async function load() {
                       }
                     </td>
 
+                    <td>
+                      ${escapeHTML(student.enrollments.find(item => item.session?.name === record.session?.name)?.class?.name || "—")}
+                    </td>
+
                   </tr>
 
                 `).join("")}
@@ -593,17 +584,6 @@ async function load() {
     // --------------------------------------------------------
     // OPTIONAL ALUMNI HANDLING
     // --------------------------------------------------------
-
-    if (
-      me.role === "ALUMNI"
-    ) {
-
-      document.body.classList.add(
-        "alumni-portal"
-      );
-
-    }
-
 
   } catch (error) {
 
@@ -635,6 +615,11 @@ async function load() {
 
     }
 
+    for (const selector of ["#student-class", "#records"]) {
+      const element = document.querySelector(selector);
+      if (element) element.innerHTML = '<p class="empty" role="status">Unable to load this information. Please refresh the page.</p>';
+    }
+
   }
 
 }
@@ -646,15 +631,22 @@ async function load() {
 
 async function logout() {
 
+  const button = document.querySelector("#logout");
+  if (button) button.disabled = true;
+
   try {
 
-    await fetch(
+    const response = await fetch(
       "/api/auth/logout",
       {
         method: "POST",
         credentials: "include"
       }
     );
+
+    if (!response.ok) throw new Error("Logout failed");
+
+    window.location.replace("/student/login.html");
 
   } catch (error) {
 
@@ -663,10 +655,10 @@ async function logout() {
       error
     );
 
-  } finally {
-
-    window.location.href =
-      "index.html";
+    if (button) {
+      button.disabled = false;
+      button.textContent = "Logout unavailable. Try again";
+    }
 
   }
 
