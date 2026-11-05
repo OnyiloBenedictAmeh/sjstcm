@@ -1288,14 +1288,14 @@ $("#student-photo")
       }
 
 
-      if (file.size > 5 * 1024 * 1024) {
+      if (file.size > 4 * 1024 * 1024) {
 
         preview.innerHTML = `
 
           <span>⚠️</span>
 
           <small>
-            Image is larger than 5 MB
+            Image is larger than 4 MiB
           </small>
 
         `;
@@ -2979,11 +2979,11 @@ async function uploadClassPhoto(
 
     if (
       file.size >
-      5 * 1024 * 1024
+      4 * 1024 * 1024
     ) {
 
       throw new Error(
-        "Image must be smaller than 5 MB."
+        "Image must be 4 MiB or smaller."
       );
 
     }

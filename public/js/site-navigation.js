@@ -29,6 +29,9 @@ function bindMenuToggle(header, navigation) {
 
 function renderSiteNavigation() {
   const currentPath = normalizedPath(window.location.pathname);
+  const portalOrigin = window.location.hostname === "onyilobenedictameh.github.io"
+    ? "https://sjstcm.vercel.app"
+    : "";
 
   document.querySelectorAll(".site-header").forEach(header => {
     const navigation = header.querySelector("nav");
@@ -62,7 +65,7 @@ function renderSiteNavigation() {
       </details>
       <a href="alumni/index.html">Alumni</a>
       <a href="contact.html">Contact</a>
-      <a class="nav-button" href="student/login.html">Student Portal</a>
+      <a class="nav-button" href="${portalOrigin}/student/login.html">Student Portal</a>
     `;
 
     navigation.addEventListener("click", event => {

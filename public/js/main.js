@@ -20,13 +20,9 @@ const $$ = (selector, parent = document) =>
    API BASE
    ========================================================= */
 
-const isLocalApiHost = ["localhost", "127.0.0.1", "::1"].includes(
-  window.location.hostname
-);
-
-const API_BASE_URL = isLocalApiHost
-  ? window.location.origin
-  : "https://sjstcm-apinpm-install-andand-npx-prisma.onrender.com";
+const API_BASE_URL = window.location.hostname === "onyilobenedictameh.github.io"
+  ? "https://sjstcm.vercel.app"
+  : window.location.origin;
 
 
 const esc = value =>

@@ -14,8 +14,10 @@ import jwt from "jsonwebtoken";
 import multer from "multer";
 import fs from "fs";
 import path from "path";
+import { Readable } from "node:stream";
 import { fileURLToPath } from "url";
 import { PrismaClient } from "@prisma/client";
+import { del, get, put } from "@vercel/blob";
 
 
 // ============================================================
@@ -28,6 +30,9 @@ const app = express();
 
 const __dirname =
   path.dirname(fileURLToPath(import.meta.url));
+
+const isVercel =
+  process.env.VERCEL === "1";
 
 
 // ============================================================
@@ -46,21 +51,43 @@ const studentUploads =
 
 // Create directories if they don't exist.
 
-fs.mkdirSync(classUploads, {
-  recursive: true
-});
+if (!isVercel) {
+  fs.mkdirSync(classUploads, {
+    recursive: true
+  });
 
-fs.mkdirSync(studentUploads, {
-  recursive: true
-});
+  fs.mkdirSync(studentUploads, {
+    recursive: true
+  });
+}
 
 
 // ============================================================
 // IMAGE UPLOAD
 // ============================================================
 
-const imageStorage =
-  multer.diskStorage({
+function createImageFilename(originalName) {
+  const extension =
+    path.extname(originalName).toLowerCase();
+
+  const safeExtension = [
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".webp"
+  ].includes(extension)
+    ? extension
+    : ".jpg";
+
+  return `${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2, 10)}${safeExtension}`;
+}
+
+
+const imageStorage = isVercel
+  ? multer.memoryStorage()
+  : multer.diskStorage({
 
     destination: (req, file, cb) => {
 
@@ -74,34 +101,8 @@ const imageStorage =
     },
 
 
-    filename: (req, file, cb) => {
-
-      const extension =
-        path.extname(
-          file.originalname
-        ).toLowerCase();
-
-
-      const safeExtension =
-        [
-          ".jpg",
-          ".jpeg",
-          ".png",
-          ".webp"
-        ].includes(extension)
-          ? extension
-          : ".jpg";
-
-
-      const filename =
-        `${Date.now()}-${Math.random()
-          .toString(36)
-          .slice(2, 10)}${safeExtension}`;
-
-
-      cb(null, filename);
-
-    }
+    filename: (req, file, cb) =>
+      cb(null, createImageFilename(file.originalname))
 
   });
 
@@ -112,7 +113,7 @@ const imageUpload =
     storage: imageStorage,
 
     limits: {
-      fileSize: 5 * 1024 * 1024
+      fileSize: 4 * 1024 * 1024
     },
 
     fileFilter: (req, file, cb) => {
@@ -171,46 +172,139 @@ function deleteUploadedFile(filePath) {
 }
 
 
-function deletePublicUpload(
-  publicUrl,
-  folder
-) {
+function privateStudentPhotoUrl(pathname) {
+  return `/api/private-student-photo?pathname=${encodeURIComponent(pathname)}`;
+}
 
-  if (
-    !publicUrl ||
-    typeof publicUrl !== "string"
-  ) {
 
-    return;
+function privateStudentPhotoPathname(photoUrl) {
+  if (typeof photoUrl !== "string") return null;
 
+  try {
+    const parsed = new URL(photoUrl, "https://sjstcm.invalid");
+    if (parsed.pathname !== "/api/private-student-photo") return null;
+    const pathname = parsed.searchParams.get("pathname");
+    return pathname?.startsWith("students/") && !pathname.includes("..")
+      ? pathname
+      : null;
+  } catch {
+    return null;
   }
+}
 
 
-  const prefix =
-    `/uploads/${folder}/`;
+function blobTokenFor(access) {
+  const token = access === "private"
+    ? process.env.BLOB_READ_WRITE_TOKEN
+    : process.env.CLASS_BLOB_READ_WRITE_TOKEN;
 
-
-  if (!publicUrl.startsWith(prefix)) {
-
-    return;
-
-  }
-
-
-  const filename =
-    path.basename(publicUrl);
-
-
-  const fullPath =
-    path.join(
-      uploadsRoot,
-      folder,
-      filename
+  if (!token) {
+    throw new Error(
+      access === "private"
+        ? "Private image storage is not configured."
+        : "Class image storage is not configured."
     );
+  }
+
+  return token;
+}
 
 
-  deleteUploadedFile(fullPath);
+async function storeUploadedImage(file, folder, access) {
+  if (!file) return null;
 
+  if (!isVercel) {
+    return {
+      photoUrl: `/uploads/${folder}/${file.filename}`,
+      localPath: file.path,
+      blobPathname: null,
+      access
+    };
+  }
+
+  const pathname = `${folder}/${createImageFilename(file.originalname)}`;
+  const token = blobTokenFor(access);
+  const blob = await put(pathname, file.buffer, {
+    access,
+    addRandomSuffix: true,
+    contentType: file.mimetype,
+    token
+  });
+
+  return {
+    photoUrl: access === "private"
+      ? privateStudentPhotoUrl(blob.pathname)
+      : blob.url,
+    localPath: null,
+    blobPathname: blob.pathname,
+    access
+  };
+}
+
+
+async function cleanupNewImage(image) {
+  if (!image) return;
+
+  if (image.localPath) {
+    deleteUploadedFile(image.localPath);
+    return;
+  }
+
+  if (!image.blobPathname) return;
+
+  try {
+    await del(image.blobPathname, {
+      token: blobTokenFor(image.access)
+    });
+  } catch (error) {
+    console.error("NEW BLOB CLEANUP FAILED; ORPHAN MAY REMAIN:", error.message);
+  }
+}
+
+
+async function deleteReplacedImage(photoUrl, folder) {
+  if (typeof photoUrl !== "string" || !photoUrl) return;
+
+  if (!isVercel) {
+    const prefix = `/uploads/${folder}/`;
+    if (photoUrl.startsWith(prefix)) {
+      deleteUploadedFile(path.join(uploadsRoot, folder, path.basename(photoUrl)));
+    }
+    return;
+  }
+
+  // Legacy deployment files and user-provided URLs are preserved.
+  if (photoUrl.startsWith("/uploads/")) return;
+
+  const privatePathname = folder === "students"
+    ? privateStudentPhotoPathname(photoUrl)
+    : null;
+
+  let blobPathname = privatePathname;
+  let access = "private";
+
+  if (!blobPathname && folder === "classes") {
+    try {
+      const parsed = new URL(photoUrl);
+      if (parsed.hostname.endsWith(".public.blob.vercel-storage.com")) {
+        blobPathname = photoUrl;
+        access = "public";
+      }
+    } catch {
+      return;
+    }
+  }
+
+  if (!blobPathname) return;
+
+  try {
+    await del(blobPathname, {
+      token: blobTokenFor(access)
+    });
+  } catch (error) {
+    // Keep deletion best-effort so a replacement's live URL stays usable.
+    console.error("REPLACED BLOB CLEANUP FAILED; OLD IMAGE MAY REMAIN:", error.message);
+  }
 }
 
 
@@ -471,6 +565,59 @@ const requirePermission = (...requiredPermissions) =>
       return res.status(500).json({ error: "Unable to authorize request." });
     }
   };
+
+
+// Private student images are delivered through this same-origin route.
+// The database stores this app URL, never the private Blob URL or token.
+app.get(
+  "/api/private-student-photo",
+  auth,
+  allow("ADMIN", "STAFF"),
+  requirePermission("STUDENTS_VIEW"),
+  async (req, res) => {
+    try {
+      const pathname = req.query.pathname;
+
+      if (
+        typeof pathname !== "string" ||
+        !pathname.startsWith("students/") ||
+        pathname.includes("..") ||
+        pathname.includes("\\")
+      ) {
+        return res.sendStatus(404);
+      }
+
+      const photoUrl = privateStudentPhotoUrl(pathname);
+      const student = await prisma.student.findFirst({
+        where: { photoUrl },
+        select: { id: true }
+      });
+
+      if (!student) return res.sendStatus(404);
+
+      const blob = await get(pathname, {
+        access: "private",
+        token: blobTokenFor("private")
+      });
+
+      if (!blob || blob.statusCode !== 200) {
+        return res.sendStatus(404);
+      }
+
+      res.set({
+        "Content-Type": blob.blob.contentType,
+        "Content-Length": String(blob.blob.size),
+        "X-Content-Type-Options": "nosniff",
+        "Cache-Control": "private, no-store"
+      });
+
+      Readable.fromWeb(blob.stream).pipe(res);
+    } catch (error) {
+      console.error("PRIVATE STUDENT PHOTO ERROR:", error.message);
+      res.status(500).json({ error: "Unable to load student photograph." });
+    }
+  }
+);
 
 
 // ============================================================
@@ -1457,6 +1604,9 @@ app.get(
 
       res.json({
         ...student,
+        photoUrl: privateStudentPhotoPathname(student.photoUrl)
+          ? null
+          : student.photoUrl,
         currentEnrollment,
         classmates: classmates.map(({ student: classmate }) => classmate)
       });
@@ -1675,6 +1825,8 @@ app.post(
     req.uploadType =
       "student";
 
+    let uploadedImage = null;
+    let databaseCommitted = false;
 
     imageUpload.single(
       "photo"
@@ -1776,10 +1928,11 @@ app.post(
         // PHOTO URL
         // ------------------------------------------------------
 
-        const photoUrl =
-          req.file
-            ? `/uploads/students/${req.file.filename}`
-            : null;
+        uploadedImage = req.file
+          ? await storeUploadedImage(req.file, "students", "private")
+          : null;
+
+        const photoUrl = uploadedImage?.photoUrl || null;
 
 
         // ------------------------------------------------------
@@ -1897,6 +2050,7 @@ app.post(
             }
           );
 
+        databaseCommitted = true;
 
         res.status(201).json(
           student
@@ -1905,9 +2059,10 @@ app.post(
 
       } catch (error) {
 
-        deleteUploadedFile(
-          req.file?.path
-        );
+        if (!databaseCommitted) {
+          await cleanupNewImage(uploadedImage);
+          if (!uploadedImage) deleteUploadedFile(req.file?.path);
+        }
 
 
         console.error(
@@ -2146,6 +2301,8 @@ app.post(
     req.uploadType =
       "student";
 
+    let uploadedImage = null;
+    let databaseCommitted = false;
 
     imageUpload.single(
       "photo"
@@ -2199,8 +2356,11 @@ app.post(
         }
 
 
-        const photoUrl =
-          `/uploads/students/${req.file.filename}`;
+        uploadedImage = await storeUploadedImage(
+          req.file,
+          "students",
+          "private"
+        );
 
 
         const updated =
@@ -2212,7 +2372,7 @@ app.post(
             },
 
             data: {
-              photoUrl
+              photoUrl: uploadedImage.photoUrl
             },
 
             include: {
@@ -2234,6 +2394,7 @@ app.post(
 
           });
 
+        databaseCommitted = true;
 
         // Delete old photo only
         // after successful update.
@@ -2242,7 +2403,7 @@ app.post(
           student.photoUrl
         ) {
 
-          deletePublicUpload(
+          await deleteReplacedImage(
             student.photoUrl,
             "students"
           );
@@ -2255,9 +2416,10 @@ app.post(
 
       } catch (error) {
 
-        deleteUploadedFile(
-          req.file?.path
-        );
+        if (!databaseCommitted) {
+          await cleanupNewImage(uploadedImage);
+          if (!uploadedImage) deleteUploadedFile(req.file?.path);
+        }
 
 
         console.error(
@@ -2740,6 +2902,8 @@ app.post(
     req.uploadType =
       "class";
 
+    let uploadedImage = null;
+    let databaseCommitted = false;
 
     imageUpload.single(
       "photo"
@@ -2793,8 +2957,11 @@ app.post(
         }
 
 
-        const photoUrl =
-          `/uploads/classes/${req.file.filename}`;
+        uploadedImage = await storeUploadedImage(
+          req.file,
+          "classes",
+          "public"
+        );
 
 
         const updatedClass =
@@ -2807,11 +2974,12 @@ app.post(
 
             data: {
               classPhotoUrl:
-                photoUrl
+                uploadedImage.photoUrl
             }
 
           });
 
+        databaseCommitted = true;
 
         // Delete old photo only after
         // database update succeeded.
@@ -2820,7 +2988,7 @@ app.post(
           classRecord.classPhotoUrl
         ) {
 
-          deletePublicUpload(
+          await deleteReplacedImage(
             classRecord.classPhotoUrl,
             "classes"
           );
@@ -2908,9 +3076,10 @@ app.post(
 
       } catch (error) {
 
-        deleteUploadedFile(
-          req.file?.path
-        );
+        if (!databaseCommitted) {
+          await cleanupNewImage(uploadedImage);
+          if (!uploadedImage) deleteUploadedFile(req.file?.path);
+        }
 
 
         console.error(
@@ -3564,16 +3733,24 @@ const port =
   );
 
 
-app.listen(
-  port,
-  () => {
+const isDirectExecution =
+  process.argv[1] &&
+  path.resolve(process.argv[1]) ===
+    fileURLToPath(import.meta.url);
 
-    console.log(
-      `School platform running on http://localhost:${port}`
-    );
 
-  }
-);
+if (isDirectExecution) {
+  app.listen(
+    port,
+    () => {
+
+      console.log(
+        `School platform running on http://localhost:${port}`
+      );
+
+    }
+  );
+}
 
 
 // ============================================================
@@ -3603,3 +3780,6 @@ process.on(
   "SIGTERM",
   shutdown
 );
+
+
+export default app;

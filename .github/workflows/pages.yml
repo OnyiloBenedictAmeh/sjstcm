@@ -48,6 +48,14 @@ jobs:
           for page in Path("_site").rglob("*.html"):
               html = page.read_text(encoding="utf-8")
               html = html.replace('<base href="/">', f'<base href="{base_href}">')
+              html = html.replace(
+                  'href="student/login.html"',
+                  'href="https://sjstcm.vercel.app/student/login.html"',
+              )
+              html = html.replace(
+                  'href="admin/login.html"',
+                  'href="https://sjstcm.vercel.app/admin/login.html"',
+              )
               page.write_text(html, encoding="utf-8")
           PY
 
