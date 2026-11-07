@@ -63,6 +63,11 @@
 
         <p class="nav-label">PEOPLE</p>
 
+        <button class="admin-nav-item" data-section="staff" type="button">
+          <span class="nav-icon"><i class="bx bx-id-card" aria-hidden="true"></i></span>
+          <span>Staff</span>
+        </button>
+
         <button class="admin-nav-item" data-section="alumni" type="button">
           <span class="nav-icon"><i class="bx bx-user-voice" aria-hidden="true"></i></span>
           <span>Alumni</span>
@@ -424,6 +429,60 @@
               </table>
             </div>
             <div id="student-pagination" class="pagination-controls" aria-label="Student list pages"></div>
+          </article>
+        </section>
+
+        <!-- =====================================================
+           STAFF
+      ====================================================== -->
+
+        <section class="admin-section" id="section-staff" hidden>
+          <div class="section-intro">
+            <div>
+              <span class="eyebrow"> STAFF MANAGEMENT </span>
+              <h2>Staff</h2>
+              <p>Manage staff profiles, responsibilities, service history and existing staff account links.</p>
+            </div>
+            <button class="button" id="add-staff-button" type="button" hidden>+ Add Staff</button>
+          </div>
+
+          <article class="panel hidden" id="staff-form-panel">
+            <div class="panel-header">
+              <div><span class="panel-kicker" id="staff-form-kicker">STAFF PROFILE</span><h3 id="staff-form-title">Add staff profile</h3></div>
+              <button class="icon-button" id="close-staff-form" type="button" aria-label="Close staff form">×</button>
+            </div>
+            <form id="staff-form" class="admin-form">
+              <input type="hidden" name="id">
+              <div class="form-grid">
+                <label><span>Full name</span><input name="fullName" maxlength="160" required></label>
+                <label><span>Former name <small>(optional)</small></span><input name="formerName" maxlength="160"></label>
+                <label><span>Employment status</span><select name="employmentStatus"><option value="CURRENT">Current</option><option value="FORMER">Former</option></select></label>
+                <label><span>Verification status</span><select name="verificationStatus"><option value="PENDING">Pending</option><option value="VERIFIED">Verified</option><option value="NEEDS_INFORMATION">Needs information</option><option value="REJECTED">Rejected</option></select></label>
+                <label class="staff-account-field"><span>Existing staff account <small>(optional)</small></span><select name="userId"><option value="">No account linked</option></select><small>Only existing STAFF accounts can be linked. This does not create an account or change a password.</small></label>
+              </div>
+              <label><span>Biography</span><textarea name="biography" rows="3" maxlength="10000"></textarea></label>
+              <label><span>Memories</span><textarea name="memories" rows="3" maxlength="10000"></textarea></label>
+              <label class="check-row"><input name="isPublic" type="checkbox"><span>Make this staff profile public</span></label>
+              <div class="staff-appointments-heading"><div><h4>Positions and responsibilities</h4><p class="muted">Add more than one appointment to describe concurrent or past responsibilities.</p></div><button class="button secondary" id="add-staff-appointment" type="button">+ Add position</button></div>
+              <div id="staff-appointments" class="staff-appointments"></div>
+              <div class="form-actions">
+                <button type="button" class="button secondary" id="cancel-staff-form">Cancel</button>
+                <button type="submit" class="button">Save staff profile</button>
+              </div>
+              <p id="staff-form-status" class="form-status" role="status"></p>
+            </form>
+          </article>
+
+          <article class="panel">
+            <div class="content-toolbar staff-toolbar">
+              <input id="staff-search" type="search" placeholder="Search name, staff ID, position or department" aria-label="Search staff">
+              <select id="staff-employment-filter" aria-label="Filter staff by employment status"><option value="">All employment statuses</option><option value="CURRENT">Current</option><option value="FORMER">Former</option></select>
+              <select id="staff-verification-filter" aria-label="Filter staff by verification status"><option value="">All verification statuses</option><option value="PENDING">Pending</option><option value="VERIFIED">Verified</option><option value="NEEDS_INFORMATION">Needs information</option><option value="REJECTED">Rejected</option></select>
+              <button class="button secondary" id="refresh-staff" type="button">Refresh</button>
+            </div>
+            <p id="staff-count" class="muted" aria-live="polite"></p>
+            <div id="staff-list" class="staff-list" aria-live="polite"><div class="list-loading">Loading staff...</div></div>
+            <div id="staff-pagination" class="pagination-controls" aria-label="Staff list pages"></div>
           </article>
         </section>
 

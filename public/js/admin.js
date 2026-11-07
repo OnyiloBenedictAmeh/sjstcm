@@ -212,6 +212,7 @@ async function api(url, options = {}) {
 
 const permittedAreaDefinitions = [
   { keys: ["STUDENTS_VIEW", "STUDENTS_MANAGE"], title: "Students", icon: "👨‍🎓", section: "students" },
+  { keys: ["STAFF_VIEW", "STAFF_MANAGE"], title: "Staff", icon: "🪪", section: "staff" },
   { keys: ["ACADEMICS_VIEW", "ACADEMICS_MANAGE", "RESULTS_REVIEW"], title: "Academic Records", icon: "📚", section: "academics" },
   { keys: ["ALUMNI_VIEW", "ALUMNI_VERIFY", "ALUMNI_MANAGE"], title: "Alumni", icon: "📖", section: "alumni" },
   { keys: ["CONTENT_VIEW", "CONTENT_MANAGE"], title: "News and Content", icon: "📰", section: "news" },
@@ -302,9 +303,11 @@ async function loadCurrentUser() {
 
   const canStudentsView = alumniCan("STUDENTS_VIEW") || alumniCan("STUDENTS_MANAGE");
   const canStudentsManage = alumniCan("STUDENTS_MANAGE");
+  const canStaffView = alumniCan("STAFF_VIEW") || alumniCan("STAFF_MANAGE");
+  const canStaffManage = alumniCan("STAFF_MANAGE");
   const canAcademicsView = alumniCan("ACADEMICS_VIEW") || alumniCan("ACADEMICS_MANAGE");
   const canAcademicsManage = alumniCan("ACADEMICS_MANAGE");
-  for (const [section, allowed] of [["students", canStudentsView], ["academics", canAcademicsView]]) {
+  for (const [section, allowed] of [["students", canStudentsView], ["staff", canStaffView], ["academics", canAcademicsView]]) {
     const nav = document.querySelector('[data-section="' + section + '"]');
     const panel = document.getElementById("section-" + section);
     if (nav) nav.hidden = !allowed;
@@ -313,6 +316,7 @@ async function loadCurrentUser() {
     if (quick) quick.hidden = !allowed;
   }
   if ($("#add-student-button")) $("#add-student-button").hidden = !canStudentsManage;
+  if ($("#add-staff-button")) $("#add-staff-button").hidden = !canStaffManage;
   if ($("#add-class-btn")) $("#add-class-btn").hidden = !canAcademicsManage;
   if ($("#edit-class-btn")) $("#edit-class-btn").hidden = !canAcademicsManage;
   if ($("#add-class-student-btn")) $("#add-class-student-btn").hidden = !canStudentsManage;
@@ -441,6 +445,10 @@ const sectionInfo = {
     title: "Students"
   },
 
+  staff: {
+    title: "Staff"
+  },
+
   academics: {
     title: "Academics"
   },
@@ -481,6 +489,10 @@ function openSection(section) {
   if (!sectionInfo[section]) return;
 
   if (section === "students" && !alumniCan("STUDENTS_VIEW") && !alumniCan("STUDENTS_MANAGE")) {
+    showLockedDoor();
+    return;
+  }
+  if (section === "staff" && !alumniCan("STAFF_VIEW") && !alumniCan("STAFF_MANAGE")) {
     showLockedDoor();
     return;
   }
@@ -4959,6 +4971,201 @@ $("#class-form")
   );
 
 // ============================================================
+// STAFF MANAGEMENT
+// ============================================================
+
+const staffEndpoint = "/api/admin/staff";
+let staffPage = 1;
+let staffItems = [];
+let staffOptions = { departments: [], accounts: [] };
+const staffCanView = () => alumniCan("STAFF_VIEW") || alumniCan("STAFF_MANAGE");
+const staffCanManage = () => alumniCan("STAFF_MANAGE");
+
+async function loadStaffOptions() {
+  staffOptions = await api(`${staffEndpoint}/options`);
+}
+
+function staffAppointmentRow(appointment = {}) {
+  const departmentOptions = staffOptions.departments.map(department => `<option value="${escapeHTML(department.id)}" ${department.id === appointment.departmentId ? "selected" : ""}>${escapeHTML(department.name)}</option>`).join("");
+  return `<fieldset class="staff-appointment-row" data-appointment-id="${escapeHTML(appointment.id || "")}">
+    <legend>Position / responsibility</legend>
+    <div class="form-grid">
+      <label><span>Position</span><input data-appointment-field="position" maxlength="160" value="${escapeHTML(appointment.position || "")}" required></label>
+      <label><span>Department</span><select data-appointment-field="departmentId"><option value="">No department</option>${departmentOptions}</select></label>
+      <label><span>Department label <small>(optional)</small></span><input data-appointment-field="departmentLabel" maxlength="120" value="${escapeHTML(appointment.departmentLabel || "")}"></label>
+      <label><span>Subjects <small>(comma separated)</small></span><input data-appointment-field="subjects" maxlength="1000" value="${escapeHTML((appointment.subjects || []).join(", "))}"></label>
+      <label><span>Start date</span><input data-appointment-field="startDate" type="date" value="${escapeHTML(appointment.startDate ? String(appointment.startDate).slice(0, 10) : "")}"></label>
+      <label><span>End date</span><input data-appointment-field="endDate" type="date" value="${escapeHTML(appointment.endDate ? String(appointment.endDate).slice(0, 10) : "")}"></label>
+      <label><span>Start year</span><input data-appointment-field="startYear" type="number" min="1000" max="9999" value="${escapeHTML(appointment.startYear ?? "")}"></label>
+      <label><span>End year</span><input data-appointment-field="endYear" type="number" min="1000" max="9999" value="${escapeHTML(appointment.endYear ?? "")}"></label>
+      <label><span>Approximate period</span><input data-appointment-field="approximatePeriod" maxlength="120" value="${escapeHTML(appointment.approximatePeriod || "")}"></label>
+      <label><span>Historical label</span><input data-appointment-field="historicalLabel" maxlength="160" value="${escapeHTML(appointment.historicalLabel || "")}"></label>
+    </div>
+    <label class="check-row"><input data-appointment-field="isCurrent" type="checkbox" ${appointment.isCurrent ? "checked" : ""}><span>Current responsibility</span></label>
+    <button type="button" class="button danger staff-remove-appointment">Remove position</button>
+  </fieldset>`;
+}
+
+function renderStaff() {
+  const host = $("#staff-list");
+  if (!host) return;
+  if (!staffItems.length) { host.innerHTML = '<p class="empty-state">No staff profiles match this search.</p>'; return; }
+  host.innerHTML = `<div class="table-wrap"><table class="data-table staff-table"><thead><tr><th>Staff member</th><th>Employment</th><th>Verification</th><th>Positions and departments</th><th>Portal account</th><th>Actions</th></tr></thead><tbody>${staffItems.map(item => {
+    const positions = (item.appointments || []).map(appointment => `<li><strong>${escapeHTML(appointment.position)}</strong><small>${escapeHTML(appointment.department?.name || appointment.departmentLabel || "No department")}${appointment.isCurrent ? " · Current" : ""}${appointment.startYear || appointment.endYear ? ` · ${escapeHTML(appointment.startYear || "?")}–${escapeHTML(appointment.endYear || (appointment.isCurrent ? "present" : "?"))}` : ""}</small></li>`).join("") || '<li class="muted">No positions recorded</li>';
+    const account = item.user ? escapeHTML(item.user.email) : "Not linked";
+    return `<tr><td><strong>${escapeHTML(item.fullName)}</strong><small>${escapeHTML(item.formerStaffId)}</small>${item.formerName ? `<small>Formerly ${escapeHTML(item.formerName)}</small>` : ""}</td><td><span class="status-badge ${String(item.employmentStatus).toLowerCase()}">${escapeHTML(item.employmentStatus)}</span></td><td><span class="status-badge ${String(item.verificationStatus).toLowerCase()}">${escapeHTML(item.verificationStatus.replaceAll("_", " "))}</span></td><td><ul class="staff-position-list">${positions}</ul></td><td>${account}</td><td><button type="button" class="button secondary" data-staff-open="${escapeHTML(item.id)}">${staffCanManage() ? "Edit" : "Details"}</button></td></tr>`;
+  }).join("")}</tbody></table></div>`;
+}
+
+function renderStaffPagination(data) {
+  const host = $("#staff-pagination");
+  if (!host) return;
+  host.innerHTML = data.pages > 1 ? `<button class="button secondary" type="button" data-staff-page="${data.page - 1}" ${data.page <= 1 ? "disabled" : ""}>Previous</button><span>Page ${data.page} of ${data.pages} · ${data.total} staff profiles</span><button class="button secondary" type="button" data-staff-page="${data.page + 1}" ${data.page >= data.pages ? "disabled" : ""}>Next</button>` : "";
+}
+
+async function loadStaff(page = staffPage) {
+  const host = $("#staff-list");
+  if (!staffCanView()) { if (host) host.innerHTML = '<p class="empty-state">You do not have access to staff records.</p>'; return; }
+  staffPage = page;
+  if (host) host.innerHTML = '<div class="list-loading">Loading staff...</div>';
+  const params = new URLSearchParams({ page: String(page), pageSize: "30" });
+  const q = $("#staff-search")?.value.trim();
+  const employmentStatus = $("#staff-employment-filter")?.value;
+  const verificationStatus = $("#staff-verification-filter")?.value;
+  if (q) params.set("q", q);
+  if (employmentStatus) params.set("employmentStatus", employmentStatus);
+  if (verificationStatus) params.set("verificationStatus", verificationStatus);
+  try {
+    const result = await api(`${staffEndpoint}?${params}`);
+    staffItems = result.items;
+    if ($("#staff-count")) $("#staff-count").textContent = `${result.total} staff profile${result.total === 1 ? "" : "s"}`;
+    renderStaff();
+    renderStaffPagination(result);
+  } catch (error) {
+    if (host) host.innerHTML = `<p class="empty-state error">${escapeHTML(error.message || "Unable to load staff.")}</p>`;
+  }
+}
+
+function collectStaffAppointments() {
+  return [...$("#staff-appointments").querySelectorAll(".staff-appointment-row")].map(row => {
+    const value = field => row.querySelector(`[data-appointment-field="${field}"]`);
+    return {
+      ...(row.dataset.appointmentId ? { id: row.dataset.appointmentId } : {}),
+      position: value("position").value.trim(),
+      departmentId: value("departmentId").value || null,
+      departmentLabel: value("departmentLabel").value.trim() || null,
+      subjects: value("subjects").value.split(",").map(subject => subject.trim()).filter(Boolean),
+      startDate: value("startDate").value || null,
+      endDate: value("endDate").value || null,
+      startYear: value("startYear").value || null,
+      endYear: value("endYear").value || null,
+      approximatePeriod: value("approximatePeriod").value.trim() || null,
+      historicalLabel: value("historicalLabel").value.trim() || null,
+      isCurrent: value("isCurrent").checked
+    };
+  }).filter(appointment => appointment.position);
+}
+
+function showStaffForm(profile = null) {
+  const form = $("#staff-form");
+  const panel = $("#staff-form-panel");
+  if (!form || !panel || !staffCanView()) return;
+  form.reset();
+  form.elements.id.value = profile?.id || "";
+  form.elements.fullName.value = profile?.fullName || "";
+  form.elements.formerName.value = profile?.formerName || "";
+  form.elements.employmentStatus.value = profile?.employmentStatus || "FORMER";
+  form.elements.verificationStatus.value = profile?.verificationStatus || "PENDING";
+  form.elements.biography.value = profile?.biography || "";
+  form.elements.memories.value = profile?.memories || "";
+  form.elements.isPublic.checked = profile?.isPublic === true;
+  const accountSelect = form.elements.userId;
+  accountSelect.innerHTML = '<option value="">No account linked</option>' + staffOptions.accounts.map(account => `<option value="${escapeHTML(account.id)}" ${account.linked && account.id !== profile?.user?.id ? "disabled" : ""}>${escapeHTML(account.email)}${account.linked && account.id !== profile?.user?.id ? " · linked to another profile" : ""}</option>`).join("");
+  if (profile?.user && !staffOptions.accounts.some(account => account.id === profile.user.id)) accountSelect.insertAdjacentHTML("beforeend", `<option value="${escapeHTML(profile.user.id)}">${escapeHTML(profile.user.email)} · linked</option>`);
+  accountSelect.value = profile?.user?.id || "";
+  const appointmentHost = $("#staff-appointments");
+  appointmentHost.innerHTML = (profile?.appointments || []).map(staffAppointmentRow).join("");
+  if (profile && !(profile.appointments || []).length) appointmentHost.innerHTML = '<p class="muted staff-no-appointments">No positions recorded.</p>';
+  const canManage = staffCanManage();
+  for (const element of form.querySelectorAll("input, select, textarea")) element.disabled = !canManage;
+  for (const button of form.querySelectorAll("button")) button.hidden = !canManage;
+  $("#staff-form-title").textContent = profile ? (canManage ? "Edit staff profile" : "Staff profile details") : "Add staff profile";
+  $("#staff-form-kicker").textContent = profile?.formerStaffId || "STAFF PROFILE";
+  panel.classList.remove("hidden");
+  if (canManage) form.elements.fullName.focus();
+  panel.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function openStaffProfile(id) {
+  try { showStaffForm(await api(`${staffEndpoint}/${encodeURIComponent(id)}`)); }
+  catch (error) { showToast(error.message || "Unable to load staff profile.", "error"); }
+}
+
+function initializeStaffManagement() {
+  const section = $("#section-staff");
+  const nav = document.querySelector('[data-section="staff"]');
+  const canView = staffCanView();
+  if (section) section.hidden = !canView;
+  if (nav) nav.hidden = !canView;
+  if (!canView) return;
+  const form = $("#staff-form");
+  $("#add-staff-button")?.addEventListener("click", () => showStaffForm());
+  $("#close-staff-form")?.addEventListener("click", () => $("#staff-form-panel").classList.add("hidden"));
+  $("#cancel-staff-form")?.addEventListener("click", () => $("#staff-form-panel").classList.add("hidden"));
+  $("#add-staff-appointment")?.addEventListener("click", () => {
+    $("#staff-appointments .staff-no-appointments")?.remove();
+    $("#staff-appointments").insertAdjacentHTML("beforeend", staffAppointmentRow());
+  });
+  $("#staff-appointments")?.addEventListener("click", event => {
+    const remove = event.target.closest(".staff-remove-appointment");
+    if (remove) remove.closest(".staff-appointment-row")?.remove();
+  });
+  $("#staff-list")?.addEventListener("click", event => {
+    const button = event.target.closest("[data-staff-open]");
+    if (button) openStaffProfile(button.dataset.staffOpen);
+  });
+  $("#staff-pagination")?.addEventListener("click", event => {
+    const button = event.target.closest("[data-staff-page]");
+    if (button && !button.disabled) loadStaff(Number(button.dataset.staffPage));
+  });
+  $("#refresh-staff")?.addEventListener("click", () => loadStaff(1));
+  $("#staff-employment-filter")?.addEventListener("change", () => loadStaff(1));
+  $("#staff-verification-filter")?.addEventListener("change", () => loadStaff(1));
+  let timer;
+  $("#staff-search")?.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(() => loadStaff(1), 250); });
+  form?.addEventListener("submit", async event => {
+    event.preventDefault();
+    if (!staffCanManage()) return showToast("You do not have permission to manage staff.", "error");
+    const payload = {
+      fullName: form.elements.fullName.value.trim(),
+      formerName: form.elements.formerName.value.trim() || null,
+      employmentStatus: form.elements.employmentStatus.value,
+      verificationStatus: form.elements.verificationStatus.value,
+      userId: form.elements.userId.value || null,
+      biography: form.elements.biography.value.trim() || null,
+      memories: form.elements.memories.value.trim() || null,
+      isPublic: form.elements.isPublic.checked,
+      appointments: collectStaffAppointments()
+    };
+    const id = form.elements.id.value;
+    try {
+      setMessage("#staff-form-status", id ? "Saving staff profile..." : "Creating staff profile...");
+      await api(id ? `${staffEndpoint}/${encodeURIComponent(id)}` : staffEndpoint, { method: id ? "PUT" : "POST", body: JSON.stringify(payload) });
+      $("#staff-form-panel").classList.add("hidden");
+      showToast(`Staff profile ${id ? "updated" : "created"}.`);
+      await loadStaff(staffPage);
+    } catch (error) {
+      setMessage("#staff-form-status", error.message || "Unable to save staff profile.", "error");
+    }
+  });
+  (async () => {
+    try { await loadStaffOptions(); await loadStaff(); }
+    catch (error) { const host = $("#staff-list"); if (host) host.innerHTML = `<p class="empty-state error">${escapeHTML(error.message || "Unable to load staff options.")}</p>`; }
+  })();
+}
+
+
+// ============================================================
 // LOGOUT
 // ============================================================
 
@@ -5010,6 +5217,7 @@ async function initializeAdmin() {
 
     await loadCurrentUser();
 
+    initializeStaffManagement();
     initializeContentManagement();
 
 

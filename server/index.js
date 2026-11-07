@@ -563,7 +563,8 @@ const requirePermission = (...requiredPermissions) =>
       const granted = await getCurrentPermissions(req.user.sub);
       const hasPermission = permission =>
         granted.includes(permission) ||
-        (permission === 'STUDENTS_VIEW' && granted.includes('STUDENTS_MANAGE'));
+        (permission === 'STUDENTS_VIEW' && granted.includes('STUDENTS_MANAGE')) ||
+        (permission === 'STAFF_VIEW' && granted.includes('STAFF_MANAGE'));
 
       if (requiredPermissions.every(hasPermission)) {
         return next();

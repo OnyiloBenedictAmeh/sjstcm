@@ -2185,3 +2185,31 @@
   .content-row-actions { justify-content: flex-start; }
   .content-toolbar > * { width: 100%; }
 }
+
+/* Staff management */
+.staff-toolbar { align-items: center; }
+.staff-toolbar input[type="search"] { flex: 1 1 260px; min-width: min(100%, 220px); }
+.staff-toolbar select { flex: 0 1 220px; }
+.staff-table { min-width: 900px; }
+.staff-table td small { display: block; margin-top: 4px; color: var(--muted); }
+.staff-position-list { margin: 0; padding-left: 18px; }
+.staff-position-list li { margin: 5px 0; }
+.staff-position-list small { display: block; color: var(--muted); }
+#staff-form-panel { margin-bottom: 20px; }
+#staff-form { padding: 20px 22px; }
+.staff-account-field small { display: block; margin-top: 5px; color: var(--muted); }
+.staff-appointments-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 24px 0 12px; }
+.staff-appointments-heading h4,
+.staff-appointments-heading p { margin: 0; }
+.staff-appointments-heading p { margin-top: 4px; }
+.staff-appointment-row { min-width: 0; margin: 12px 0; padding: 16px; border: 1px solid var(--line); border-radius: 14px; }
+.staff-appointment-row legend { padding: 0 7px; font-weight: 700; }
+.staff-appointment-row .form-grid { margin-bottom: 12px; }
+.staff-appointment-row .button { margin-top: 8px; }
+.staff-no-appointments { padding: 12px 0; }
+@media (max-width: 650px) {
+  .staff-appointments-heading { align-items: stretch; flex-direction: column; }
+  .staff-appointments-heading .button { align-self: flex-start; }
+  #staff-form { padding: 16px; }
+  .staff-appointment-row { padding: 12px; }
+}

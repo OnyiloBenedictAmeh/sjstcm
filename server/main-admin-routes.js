@@ -1,4 +1,6 @@
 const ENROLLMENT_STATUSES = new Set(["ENROLLED", "PROMOTED", "COMPLETED", "WITHDRAWN"]);
+const STAFF_EMPLOYMENT_STATUSES = new Set(["CURRENT", "FORMER"]);
+const STAFF_VERIFICATION_STATUSES = new Set(["PENDING", "VERIFIED", "REJECTED", "NEEDS_INFORMATION"]);
 
 function clean(value) { return typeof value === "string" ? value.trim() : ""; }
 function dateValue(value) {
@@ -7,6 +9,66 @@ function dateValue(value) {
   return Number.isFinite(parsed.getTime()) ? parsed : undefined;
 }
 function bad(res, message) { return res.status(400).json({ error: message }); }
+const staffInclude = {
+  user: { select: { id: true, email: true, role: true } },
+  appointments: {
+    include: { department: { select: { id: true, name: true } } },
+    orderBy: [{ isCurrent: "desc" }, { startDate: "desc" }, { createdAt: "asc" }]
+  }
+};
+const staffText = (value, max, label, required = false) => {
+  if (value == null) value = "";
+  if (typeof value !== "string") return { error: `${label} must be text.` };
+  const cleaned = value.trim();
+  if (required && !cleaned) return { error: `${label} is required.` };
+  if (cleaned.length > max) return { error: `${label} must be at most ${max} characters.` };
+  return { value: cleaned || null };
+};
+function staffDateValue(value) {
+  if (value === undefined || value === null || value === "") return null;
+  if (typeof value !== "string") return undefined;
+  const parsed = new Date(value);
+  if (!Number.isFinite(parsed.getTime())) return undefined;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value) && parsed.toISOString().slice(0, 10) !== value) return undefined;
+  return parsed;
+}
+function validateStaffAppointment(input) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return { error: "Each appointment must be an object." };
+  const position = staffText(input.position, 160, "Position", true);
+  const departmentLabel = staffText(input.departmentLabel, 120, "Department label");
+  const approximatePeriod = staffText(input.approximatePeriod, 120, "Approximate period");
+  const historicalLabel = staffText(input.historicalLabel, 160, "Historical label");
+  if (position.error || departmentLabel.error || approximatePeriod.error || historicalLabel.error) return { error: position.error || departmentLabel.error || approximatePeriod.error || historicalLabel.error };
+  const departmentId = input.departmentId == null || input.departmentId === "" ? null : clean(input.departmentId);
+  if (input.departmentId != null && input.departmentId !== "" && !departmentId) return { error: "Department is invalid." };
+  const startDate = staffDateValue(input.startDate), endDate = staffDateValue(input.endDate);
+  if (startDate === undefined || endDate === undefined) return { error: "Appointment dates must be valid dates." };
+  if (startDate && endDate && endDate < startDate) return { error: "Appointment end date cannot be earlier than its start date." };
+  const validYear = value => value == null || value === "" || (Number.isInteger(Number(value)) && Number(value) >= 1000 && Number(value) <= 9999);
+  if (!validYear(input.startYear) || !validYear(input.endYear)) return { error: "Appointment years must be between 1000 and 9999." };
+  const startYear = input.startYear == null || input.startYear === "" ? null : Number(input.startYear);
+  const endYear = input.endYear == null || input.endYear === "" ? null : Number(input.endYear);
+  if (startYear && endYear && endYear < startYear) return { error: "Appointment end year cannot be earlier than its start year." };
+  if (input.subjects != null && !Array.isArray(input.subjects)) return { error: "Subjects must be a list of text values." };
+  const rawSubjects = input.subjects || [];
+  if (rawSubjects.some(subject => typeof subject !== "string" || subject.trim().length > 120)) return { error: "Each subject must be text and at most 120 characters." };
+  const subjects = [...new Map(rawSubjects.map(subject => subject.trim()).filter(Boolean).map(subject => [subject.toLocaleLowerCase(), subject])).values()];
+  if (subjects.length > 30) return { error: "An appointment can have at most 30 subjects." };
+  return { value: {
+    position: position.value,
+    departmentId,
+    departmentLabel: departmentLabel.value,
+    subjects,
+    startDate,
+    endDate,
+    startYear,
+    endYear,
+    approximatePeriod: approximatePeriod.value,
+    historicalLabel: historicalLabel.value,
+    isCurrent: input.isCurrent === true || input.isCurrent === "true"
+  } };
+}
+const appointmentKey = appointment => [appointment.position.trim().toLocaleLowerCase(), appointment.departmentId || (appointment.departmentLabel || "").trim().toLocaleLowerCase(), appointment.startDate ? new Date(appointment.startDate).toISOString().slice(0, 10) : "", appointment.endDate ? new Date(appointment.endDate).toISOString().slice(0, 10) : ""].join("|");
 function apiError(res, error, label) {
   if (error?.code === "P2002") return res.status(409).json({ error: "A record with that identifier already exists." });
   if (error?.code === "P2025") return res.status(404).json({ error: "Record not found." });
@@ -21,6 +83,143 @@ export function registerMainAdminRoutes(app, prisma, auth, requirePermission, ge
   const manageStudents = [auth, requirePermission("STUDENTS_MANAGE")];
   const viewAcademics = [auth, requirePermission("ACADEMICS_VIEW")];
   const manageAcademics = [auth, requirePermission("ACADEMICS_MANAGE")];
+  const viewStaff = [auth, requirePermission("STAFF_VIEW")];
+  const manageStaff = [auth, requirePermission("STAFF_MANAGE")];
+
+  app.get("/api/admin/staff/options", ...viewStaff, async (_, res) => {
+    try {
+      const [departments, accounts] = await Promise.all([
+        prisma.department.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+        prisma.user.findMany({ where: { role: "STAFF" }, select: { id: true, email: true, staffProfile: { select: { id: true } } }, orderBy: { email: "asc" } })
+      ]);
+      return res.json({ departments, accounts: accounts.map(({ id, email, staffProfile }) => ({ id, email, linked: Boolean(staffProfile) })) });
+    } catch (error) { return apiError(res, error, "STAFF OPTIONS ERROR"); }
+  });
+
+  app.get("/api/admin/staff", ...viewStaff, async (req, res) => {
+    try {
+      const q = clean(req.query.q).slice(0, 120);
+      const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+      const pageSize = Math.min(100, Math.max(1, Number.parseInt(req.query.pageSize, 10) || 50));
+      if (req.query.employmentStatus && !STAFF_EMPLOYMENT_STATUSES.has(req.query.employmentStatus)) return bad(res, "Employment status filter is invalid.");
+      if (req.query.verificationStatus && !STAFF_VERIFICATION_STATUSES.has(req.query.verificationStatus)) return bad(res, "Verification status filter is invalid.");
+      const where = {
+        ...(req.query.employmentStatus ? { employmentStatus: req.query.employmentStatus } : {}),
+        ...(req.query.verificationStatus ? { verificationStatus: req.query.verificationStatus } : {}),
+        ...(q ? { OR: ["fullName", "formerName", "formerStaffId"].map(field => ({ [field]: { contains: q, mode: "insensitive" } })), } : {})
+      };
+      if (q) where.OR.push({ appointments: { some: { OR: [{ position: { contains: q, mode: "insensitive" } }, { departmentLabel: { contains: q, mode: "insensitive" } }, { department: { name: { contains: q, mode: "insensitive" } } }] } } });
+      const [total, items] = await Promise.all([
+        prisma.staffProfile.count({ where }),
+        prisma.staffProfile.findMany({ where, include: staffInclude, orderBy: [{ fullName: "asc" }, { formerStaffId: "asc" }], skip: (page - 1) * pageSize, take: pageSize })
+      ]);
+      return res.json({ items, total, page, pageSize, pages: Math.ceil(total / pageSize) });
+    } catch (error) { return apiError(res, error, "ADMIN STAFF LIST ERROR"); }
+  });
+
+  app.get("/api/admin/staff/:id", ...viewStaff, async (req, res) => {
+    try {
+      const item = await prisma.staffProfile.findUnique({ where: { id: req.params.id }, include: staffInclude });
+      return item ? res.json(item) : res.status(404).json({ error: "Staff profile not found." });
+    } catch (error) { return apiError(res, error, "ADMIN STAFF GET ERROR"); }
+  });
+
+  async function validateStaffProfile(input, existing = null) {
+    const data = {};
+    const fields = [
+      ["fullName", 160, true], ["formerName", 160], ["biography", 10000], ["memories", 10000]
+    ];
+    for (const [key, max, required] of fields) {
+      if (!Object.hasOwn(input, key) && existing) continue;
+      const result = staffText(input[key], max, key === "fullName" ? "Full name" : key === "formerName" ? "Former name" : key === "biography" ? "Biography" : "Memories", required);
+      if (result.error) return { error: result.error };
+      data[key] = key === "fullName" ? result.value : result.value;
+    }
+    for (const [key, values] of [["employmentStatus", STAFF_EMPLOYMENT_STATUSES], ["verificationStatus", STAFF_VERIFICATION_STATUSES]]) {
+      if (!Object.hasOwn(input, key) && existing) continue;
+      const value = input[key] || (key === "employmentStatus" ? "FORMER" : "PENDING");
+      if (!values.has(value)) return { error: `${key === "employmentStatus" ? "Employment" : "Verification"} status is invalid.` };
+      data[key] = value;
+    }
+    for (const key of ["isPublic", "publicName", "publicServiceHistory", "publicBiography"]) {
+      if (!Object.hasOwn(input, key) && existing) continue;
+      if (input[key] != null && typeof input[key] !== "boolean") return { error: `${key} must be true or false.` };
+      data[key] = input[key] === true;
+    }
+    if (Object.hasOwn(input, "userId") || !existing) {
+      const userId = input.userId == null || input.userId === "" ? null : clean(input.userId);
+      if (input.userId != null && input.userId !== "" && !userId) return { error: "Linked account is invalid." };
+      if (userId) {
+        const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, role: true } });
+        if (!user || user.role !== "STAFF") return { error: "Only an existing STAFF account can be linked." };
+        const linked = await prisma.staffProfile.findUnique({ where: { userId }, select: { id: true } });
+        if (linked && linked.id !== existing?.id) return { conflict: "This STAFF account is already linked to another profile." };
+      }
+      data.userId = userId;
+    }
+    return { value: data };
+  }
+
+  async function validateStaffAppointments(input, existingAppointments = []) {
+    if (input === undefined) return { value: undefined };
+    if (!Array.isArray(input) || input.length > 50) return { error: "Appointments must be a list of at most 50 entries." };
+    const values = [];
+    const ids = new Set();
+    const keys = new Set();
+    for (const raw of input) {
+      const result = validateStaffAppointment(raw);
+      if (result.error) return result;
+      const value = result.value;
+      const id = raw.id == null || raw.id === "" ? null : clean(raw.id);
+      if (id && (ids.has(id) || !existingAppointments.some(item => item.id === id))) return { error: "Appointment ID is duplicated or does not belong to this staff profile." };
+      if (id) ids.add(id);
+      const key = appointmentKey(value);
+      if (keys.has(key)) return { conflict: "Duplicate appointments are not allowed." };
+      keys.add(key);
+      if (value.departmentId) {
+        const department = await prisma.department.findUnique({ where: { id: value.departmentId }, select: { id: true } });
+        if (!department) return { error: "Selected department was not found." };
+      }
+      values.push({ id, ...value });
+    }
+    return { value: values };
+  }
+
+  async function saveStaff(req, res, update) {
+    try {
+      const existing = update ? await prisma.staffProfile.findUnique({ where: { id: req.params.id }, include: { appointments: true } }) : null;
+      if (update && !existing) return res.status(404).json({ error: "Staff profile not found." });
+      const profile = await validateStaffProfile(req.body || {}, existing);
+      if (profile.error) return bad(res, profile.error);
+      if (profile.conflict) return res.status(409).json({ error: profile.conflict });
+      const appointments = await validateStaffAppointments(req.body?.appointments, existing?.appointments || []);
+      if (appointments.error) return bad(res, appointments.error);
+      if (appointments.conflict) return res.status(409).json({ error: appointments.conflict });
+      if (!update && appointments.value?.some(item => item.id)) return bad(res, "New staff profiles cannot reference existing appointment IDs.");
+      const saved = await prisma.$transaction(async tx => {
+        const item = update
+          ? await tx.staffProfile.update({ where: { id: existing.id }, data: profile.value })
+          : await tx.staffProfile.create({ data: profile.value });
+        if (appointments.value !== undefined) {
+          const retained = appointments.value.filter(appointment => appointment.id).map(appointment => appointment.id);
+          await tx.staffAppointment.deleteMany({ where: { staffProfileId: item.id, ...(retained.length ? { id: { notIn: retained } } : {}) } });
+          for (const appointment of appointments.value) {
+            const { id, ...data } = appointment;
+            if (id) await tx.staffAppointment.update({ where: { id }, data });
+            else await tx.staffAppointment.create({ data: { ...data, staffProfileId: item.id } });
+          }
+        }
+        return tx.staffProfile.findUnique({ where: { id: item.id }, include: staffInclude });
+      });
+      return res.status(update ? 200 : 201).json(saved);
+    } catch (error) {
+      if (error?.code === "P2002") return res.status(409).json({ error: "The staff account is already linked or the record conflicts with an existing entry." });
+      if (error?.code === "P2003") return res.status(400).json({ error: "A linked account or department does not exist." });
+      return apiError(res, error, "ADMIN STAFF SAVE ERROR");
+    }
+  }
+  app.post("/api/admin/staff", ...manageStaff, (req, res) => saveStaff(req, res, false));
+  app.put("/api/admin/staff/:id", ...manageStaff, (req, res) => saveStaff(req, res, true));
 
   app.get("/api/admin/students/enrollment-options", ...viewStudents, async (_, res) => {
     try {
