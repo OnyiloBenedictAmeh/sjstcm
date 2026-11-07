@@ -18,6 +18,9 @@ import { Readable } from "node:stream";
 import { fileURLToPath } from "url";
 import { PrismaClient } from "@prisma/client";
 import { del, get, put } from "@vercel/blob";
+import { registerAlumniRoutes } from "./alumni-routes.js";
+import { registerContentRoutes } from "./content-routes.js";
+import { registerMainAdminRoutes } from "./main-admin-routes.js";
 
 
 // ============================================================
@@ -47,6 +50,8 @@ const classUploads =
 
 const studentUploads =
   path.join(uploadsRoot, "students");
+const contentUploads =
+  path.join(uploadsRoot, "content");
 
 
 // Create directories if they don't exist.
@@ -57,6 +62,9 @@ if (!isVercel) {
   });
 
   fs.mkdirSync(studentUploads, {
+    recursive: true
+  });
+  fs.mkdirSync(contentUploads, {
     recursive: true
   });
 }
@@ -94,6 +102,8 @@ const imageStorage = isVercel
       const folder =
         req.uploadType === "class"
           ? classUploads
+          : req.uploadType === "content"
+            ? contentUploads
           : studentUploads;
 
       cb(null, folder);
@@ -354,12 +364,15 @@ const allowedApiOrigins = new Set([
 
 const publicApiCorsMethods = new Map([
   ["/api/news", "GET"],
+  ["/api/breaking-news", "GET"],
   ["/api/events", "GET"],
   ["/api/gallery", "GET"],
   ["/api/departments", "GET"],
   ["/api/settings/public", "GET"],
   ["/api/alumni", "GET"],
   ["/api/alumni/years", "GET"],
+  ["/api/alumni/class-sets", "GET"],
+  ["/api/alumni/register", "POST"],
   ["/api/contact", "POST"]
 ]);
 
@@ -565,6 +578,31 @@ const requirePermission = (...requiredPermissions) =>
       return res.status(500).json({ error: "Unable to authorize request." });
     }
   };
+
+const requireAnyPermission = (...requiredPermissions) =>
+  async (req, res, next) => {
+    if (req.user.role === "ADMIN") return next();
+    try {
+      const granted = await getCurrentPermissions(req.user.sub);
+      if (requiredPermissions.some(permission => granted.includes(permission))) return next();
+      return res.status(403).json({ error: "FORBIDDEN", message: "You do not have access to this area." });
+    } catch (error) {
+      console.error("PERMISSION CHECK ERROR:", error);
+      return res.status(500).json({ error: "Unable to authorize request." });
+    }
+  };
+
+registerAlumniRoutes(app, prisma, auth, allow, requirePermission);
+registerContentRoutes(app, prisma, auth, requirePermission, {
+  imageUpload,
+  storeUploadedImage,
+  cleanupNewImage,
+  uploadsRoot,
+  isVercel,
+  blobDelete: del,
+  blobTokenFor
+});
+registerMainAdminRoutes(app, prisma, auth, requirePermission, getCurrentPermissions);
 
 
 // Private student images are delivered through this same-origin route.
@@ -1056,12 +1094,9 @@ app.get(
       const items =
         await prisma.news.findMany({
 
-          where:
-            req.query.all === "true"
-              ? {}
-              : {
-                  isPublished: true
-                },
+          where: {
+            isPublished: true
+          },
 
           orderBy: {
             publishedAt: "desc"
@@ -1637,13 +1672,15 @@ app.get(
 app.get(
   "/api/admin/overview",
   auth,
-  allow(
-    "ADMIN",
-    "STAFF"
-  ),
-  async (_, res) => {
+  requireAnyPermission(...permissionCatalog.map(([key]) => key)),
+  async (req, res) => {
 
     try {
+
+      const granted = req.user.role === "ADMIN" ? permissionCatalog.map(([key]) => key) : await getCurrentPermissions(req.user.sub);
+      const has = (...keys) => req.user.role === "ADMIN" || keys.some(key => granted.includes(key));
+      const canAcademics = has("ACADEMICS_VIEW", "ACADEMICS_MANAGE");
+      const currentSession = canAcademics ? await getCurrentSession() : null;
 
       const [
         students,
@@ -1651,7 +1688,12 @@ app.get(
         news,
         events,
         messages,
-        requests
+        requests,
+        activeStudents,
+        currentEnrollments,
+        classes,
+        sessions,
+        classSummary
       ] =
         await Promise.all([
 
@@ -1673,24 +1715,45 @@ app.get(
             where: {
               status: "PENDING"
             }
-          })
+          }),
+
+          prisma.student.count({ where: { status: "ACTIVE" } }),
+
+          prisma.enrollment.count({ where: { status: "ENROLLED", session: { isCurrent: true } } }),
+
+          prisma.class.count(),
+
+          canAcademics
+            ? prisma.session.findMany({ orderBy: { name: "desc" }, select: { id: true, name: true, startDate: true, endDate: true, isCurrent: true } })
+            : Promise.resolve([]),
+
+          canAcademics
+            ? prisma.class.findMany({
+                orderBy: { name: "asc" },
+                take: 6,
+                select: {
+                  id: true, name: true, level: true,
+                  _count: { select: { enrollments: { where: { status: "ENROLLED", ...(currentSession ? { sessionId: currentSession.id } : {}) } } } }
+                }
+              })
+            : Promise.resolve([])
 
         ]);
 
 
       res.json({
-
-        students,
-        alumni,
-        news,
-        events,
-
-        unreadMessages:
-          messages,
-
-        pendingUpdateRequests:
-          requests
-
+        students: has("STUDENTS_VIEW", "STUDENTS_MANAGE") ? students : null,
+        activeStudents: has("STUDENTS_VIEW", "STUDENTS_MANAGE") ? activeStudents : null,
+        currentlyEnrolled: has("STUDENTS_VIEW", "STUDENTS_MANAGE", "ACADEMICS_VIEW", "ACADEMICS_MANAGE") ? currentEnrollments : null,
+        classes: canAcademics ? classes : null,
+        classSummary: canAcademics ? classSummary : null,
+        alumni: has("ALUMNI_VIEW", "ALUMNI_MANAGE", "ALUMNI_VERIFY") ? alumni : null,
+        news: has("CONTENT_VIEW", "CONTENT_MANAGE") ? news : null,
+        events: has("EVENTS_MANAGE") ? events : null,
+        unreadMessages: req.user.role === "ADMIN" ? messages : null,
+        pendingUpdateRequests: has("ALUMNI_VERIFY") ? requests : null,
+        sessions: canAcademics ? sessions : null,
+        currentSession: canAcademics ? currentSession?.id || null : null
       });
 
 
@@ -1723,75 +1786,41 @@ app.get(
   async (req, res) => {
 
     try {
-
-      const q =
-        String(
-          req.query.q || ""
-        ).trim();
-
-
-      const students =
-        await prisma.student.findMany({
-
-          where:
-            q
-              ? {
-                  OR: [
-
-                    {
-                      studentId: {
-                        contains: q,
-                        mode: "insensitive"
-                      }
-                    },
-
-                    {
-                      firstName: {
-                        contains: q,
-                        mode: "insensitive"
-                      }
-                    },
-
-                    {
-                      lastName: {
-                        contains: q,
-                        mode: "insensitive"
-                      }
-                    }
-
-                  ]
-                }
-              : {},
-
-          include: {
-
+      const q = String(req.query.q || "").trim().slice(0, 120);
+      const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+      const pageSize = Math.min(100, Math.max(1, Number.parseInt(req.query.pageSize, 10) || 50));
+      const clauses = [];
+      if (q) clauses.push({ OR: ["studentId", "firstName", "middleName", "lastName", "email", "phone"].map(field => ({ [field]: { contains: q, mode: "insensitive" } })) });
+      if (["ACTIVE", "GRADUATED", "ALUMNI", "INACTIVE"].includes(req.query.status)) clauses.push({ status: req.query.status });
+      if (req.query.classId || req.query.sessionId || ["ENROLLED", "PROMOTED", "COMPLETED", "WITHDRAWN"].includes(req.query.enrollmentStatus)) {
+        clauses.push({ enrollments: { some: {
+          ...(req.query.classId ? { classId: String(req.query.classId) } : {}),
+          ...(req.query.sessionId ? { sessionId: String(req.query.sessionId) } : {}),
+          ...(["ENROLLED", "PROMOTED", "COMPLETED", "WITHDRAWN"].includes(req.query.enrollmentStatus) ? { status: req.query.enrollmentStatus } : {})
+        } } });
+      }
+      const where = clauses.length ? { AND: clauses } : {};
+      const [total, students] = await Promise.all([
+        prisma.student.count({ where }),
+        prisma.student.findMany({
+          where,
+          select: {
+            id: true, studentId: true, firstName: true, middleName: true, lastName: true, status: true,
             enrollments: {
-
-              include: {
-                class: true,
-                session: true
+              select: {
+                id: true, status: true, class: { select: { id: true, name: true } },
+                session: { select: { id: true, name: true, isCurrent: true } }
               },
-
-              orderBy: {
-                createdAt: "desc"
-              },
-
+              orderBy: [{ session: { isCurrent: "desc" } }, { createdAt: "desc" }],
               take: 1
-
             }
-
           },
-
-          orderBy: {
-            lastName: "asc"
-          },
-
-          take: 200
-
-        });
-
-
-      res.json(students);
+          orderBy: [{ lastName: "asc" }, { firstName: "asc" }, { studentId: "asc" }],
+          skip: (page - 1) * pageSize,
+          take: pageSize
+        })
+      ]);
+      res.json({ items: students, total, page, pageSize, pages: Math.ceil(total / pageSize) });
 
 
     } catch (error) {
@@ -1880,6 +1909,26 @@ app.post(
               "Student ID, first name and last name are required."
           });
 
+        }
+
+        if (Boolean(classId) !== Boolean(sessionId)) {
+          deleteUploadedFile(req.file?.path);
+          return res.status(400).json({ error: "Choose both a class and an academic session for the initial enrollment, or leave both unselected." });
+        }
+
+        if (!(["ACTIVE", "GRADUATED", "ALUMNI", "INACTIVE"].includes(status || "ACTIVE"))) {
+          deleteUploadedFile(req.file?.path);
+          return res.status(400).json({ error: "Student status is invalid." });
+        }
+
+        if (studentId.trim().length > 80 || firstName.trim().length > 100 || lastName.trim().length > 100 || (middleName && middleName.trim().length > 100)) {
+          deleteUploadedFile(req.file?.path);
+          return res.status(400).json({ error: "Student ID or name exceeds the allowed length." });
+        }
+
+        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+          deleteUploadedFile(req.file?.path);
+          return res.status(400).json({ error: "Enter a valid email address." });
         }
 
 
@@ -2152,6 +2201,10 @@ app.put(
 
         );
 
+      if ("status" in data && !["ACTIVE", "GRADUATED", "ALUMNI", "INACTIVE"].includes(data.status)) {
+        return res.status(400).json({ error: "Student status is invalid." });
+      }
+
 
       // ------------------------------------------------------
       // CLEAN STRING VALUES
@@ -2178,6 +2231,18 @@ app.put(
         }
 
       });
+
+      if (("firstName" in data && !data.firstName) || ("lastName" in data && !data.lastName)) {
+        return res.status(400).json({ error: "First and last name cannot be blank." });
+      }
+
+      if ((data.firstName?.length || 0) > 100 || (data.middleName?.length || 0) > 100 || (data.lastName?.length || 0) > 100) {
+        return res.status(400).json({ error: "Student name exceeds the allowed length." });
+      }
+
+      if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+        return res.status(400).json({ error: "Enter a valid email address." });
+      }
 
 
       // ------------------------------------------------------
@@ -2465,10 +2530,7 @@ async function getCurrentSession() {
 app.get(
   "/api/admin/classes",
   auth,
-  allow(
-    "ADMIN",
-    "STAFF"
-  ),
+  requirePermission("ACADEMICS_VIEW"),
   async (req, res) => {
 
     try {
@@ -2492,14 +2554,9 @@ app.get(
 
               select: {
 
-                enrollments:
-                  sessionId
-                    ? {
-                        where: {
-                          sessionId
-                        }
-                      }
-                    : true
+                enrollments: {
+                  where: { ...(sessionId ? { sessionId } : {}), status: "ENROLLED" }
+                }
 
               }
 
@@ -2542,10 +2599,7 @@ app.get(
 app.post(
   "/api/admin/classes",
   auth,
-  allow(
-    "ADMIN",
-    "STAFF"
-  ),
+  requirePermission("ACADEMICS_MANAGE"),
   async (req, res) => {
 
     try {
@@ -2565,6 +2619,10 @@ app.post(
             "Class name is required."
         });
 
+      }
+
+      if (name.trim().length > 80 || [level, classTeacher, description].some(value => value != null && String(value).trim().length > 1000)) {
+        return res.status(400).json({ error: "Class name or details exceed the allowed length." });
       }
 
 
@@ -2649,10 +2707,7 @@ app.post(
 app.put(
   "/api/admin/classes/:id",
   auth,
-  allow(
-    "ADMIN",
-    "STAFF"
-  ),
+  requirePermission("ACADEMICS_MANAGE"),
   async (req, res) => {
 
     try {
@@ -2672,6 +2727,10 @@ app.put(
             "Class name is required."
         });
 
+      }
+
+      if (name.trim().length > 80 || [level, classTeacher, description].some(value => value != null && String(value).trim().length > 1000)) {
+        return res.status(400).json({ error: "Class name or details exceed the allowed length." });
       }
 
 
@@ -2774,10 +2833,7 @@ app.put(
 app.get(
   "/api/admin/classes/:id",
   auth,
-  allow(
-    "ADMIN",
-    "STAFF"
-  ),
+  requirePermission("ACADEMICS_VIEW"),
   async (req, res) => {
 
     try {
@@ -2804,16 +2860,21 @@ app.get(
 
             enrollments: {
 
-              where:
-                sessionId
-                  ? {
-                      sessionId
-                    }
-                  : {},
+              where: { ...(sessionId ? { sessionId } : {}), status: "ENROLLED" },
 
               include: {
 
-                student: true,
+                student: {
+                  select: {
+                    id: true,
+                    studentId: true,
+                    firstName: true,
+                    middleName: true,
+                    lastName: true,
+                    photoUrl: true,
+                    status: true
+                  }
+                },
 
                 session: true
 
@@ -2829,14 +2890,9 @@ app.get(
 
               select: {
 
-                enrollments:
-                  sessionId
-                    ? {
-                        where: {
-                          sessionId
-                        }
-                      }
-                    : true
+                enrollments: {
+                  where: { ...(sessionId ? { sessionId } : {}), status: "ENROLLED" }
+                }
 
               }
 
@@ -2893,10 +2949,7 @@ app.get(
 app.post(
   "/api/admin/classes/:id/photo",
   auth,
-  allow(
-    "ADMIN",
-    "STAFF"
-  ),
+  requirePermission("ACADEMICS_MANAGE"),
   async (req, res) => {
 
     req.uploadType =
@@ -3108,10 +3161,7 @@ app.post(
 app.get(
   "/api/admin/sessions",
   auth,
-  allow(
-    "ADMIN",
-    "STAFF"
-  ),
+  requirePermission("ACADEMICS_VIEW"),
   async (_, res) => {
 
     try {
@@ -3611,8 +3661,12 @@ app.post(
             alumniId:
               alumni.id,
 
-            payload:
-              req.body
+            payload: Object.fromEntries(
+              Object.entries(req.body || {}).filter(([key, value]) =>
+                ["fullName", "nameWhileAttending", "formerName", "phone", "whatsapp", "entryYear", "exitYear", "approximatePeriod", "lastClassAttended", "departmentLabel", "house", "occupation", "company", "location", "bio", "memories"].includes(key) &&
+                ["string", "number"].includes(typeof value)
+              ).map(([key, value]) => [key, typeof value === "string" ? value.trim().slice(0, 2000) : value])
+            )
 
           }
 

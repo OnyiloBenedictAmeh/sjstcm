@@ -24,6 +24,11 @@ const API_BASE_URL = window.location.hostname === "onyilobenedictameh.github.io"
   ? "https://sjstcm.vercel.app"
   : window.location.origin;
 
+const contentImageUrl = value => {
+  if (!value) return "";
+  try { return new URL(value, API_BASE_URL).href; } catch { return ""; }
+};
+
 
 const esc = value =>
   String(value ?? "").replace(
@@ -213,7 +218,7 @@ function newsCard(news) {
 
       ${
         news.imageUrl
-          ? `<img src="${esc(news.imageUrl)}" alt="${title}" loading="lazy">`
+          ? `<img src="${esc(contentImageUrl(news.imageUrl))}" alt="${title}" loading="lazy">`
           : ""
       }
 
@@ -283,7 +288,7 @@ async function loadNews() {
         articleContainer.hidden = false;
         articleContainer.innerHTML = `
           <a class="text-link" href="news.html">← All news</a>
-          ${article.imageUrl ? `<img class="article-image" src="${esc(article.imageUrl)}" alt="${esc(article.title)}" loading="lazy">` : ""}
+          ${article.imageUrl ? `<img class="article-image" src="${esc(contentImageUrl(article.imageUrl))}" alt="${esc(article.title)}" loading="lazy">` : ""}
           ${date ? `<p class="eyebrow"><time datetime="${esc(article.publishedAt)}">${esc(date)}</time></p>` : ""}
           <h2>${esc(article.title)}</h2>
           <div class="article-content">${esc(article.content || article.excerpt || "").split(/\r?\n\s*\r?\n/).map(paragraph => `<p>${paragraph.replace(/\r?\n/g, "<br>")}</p>`).join("")}</div>
@@ -402,7 +407,7 @@ function eventCard(event) {
 
       ${
         event.imageUrl
-          ? `<img src="${esc(event.imageUrl)}" alt="${esc(event.title)}" loading="lazy">`
+          ? `<img src="${esc(contentImageUrl(event.imageUrl))}" alt="${esc(event.title)}" loading="lazy">`
           : ""
       }
 
@@ -672,8 +677,8 @@ function galleryCard(photo) {
 
     <figure>
 
-      <button class="gallery-preview" type="button" data-image="${esc(photo.imageUrl)}" data-caption="${esc(photo.caption || photo.title || "School photo")}" aria-label="View ${esc(photo.title || "school photo")}">
-        <img src="${esc(photo.imageUrl)}" alt="${esc(photo.title || photo.caption || "School photo")}" loading="lazy">
+      <button class="gallery-preview" type="button" data-image="${esc(contentImageUrl(photo.imageUrl))}" data-caption="${esc(photo.caption || photo.title || "School photo")}" aria-label="View ${esc(photo.title || "school photo")}">
+        <img src="${esc(contentImageUrl(photo.imageUrl))}" alt="${esc(photo.title || photo.caption || "School photo")}" loading="lazy">
       </button>
 
 
@@ -947,10 +952,7 @@ async function loadAlumni() {
 
     try {
 
-      const years =
-        await api(
-          "/api/alumni/years"
-        );
+      const years = await api("/api/alumni/class-sets");
 
 
       const items =
@@ -966,15 +968,15 @@ async function loadAlumni() {
               .map(year => `
                 <a
                   class="card"
-                  href="alumni/profile.html?year=${encodeURIComponent(year)}"
+                  href="alumni/profile.html?classSetId=${encodeURIComponent(year.id)}"
                 >
 
                   <h2>
-                    ${esc(year)} Set
+                    ${esc(year.displayName)}
                   </h2>
 
                   <p>
-                    Exit year ${esc(year)}. Entry years and historical details may not be available yet.
+                    ${year.entryYear ? `Entry year ${esc(year.entryYear)}` : ""}${year.entryYear && year.exitYear ? " – " : ""}${year.exitYear ? `Exit year ${esc(year.exitYear)}` : esc(year.approximatePeriod || "School years to be confirmed")}. ${esc(year.memberCount)} verified members.
                   </p>
 
                 </a>
@@ -1011,6 +1013,7 @@ async function loadAlumni() {
   if (classList) {
     const requestedYear =
       new URLSearchParams(window.location.search).get("year");
+    const classSetId = new URLSearchParams(window.location.search).get("classSetId");
     const year =
       /^\d{4}$/.test(requestedYear || "")
         ? requestedYear
@@ -1018,13 +1021,17 @@ async function loadAlumni() {
 
     try {
       const alumni = await api(
-        year
-          ? `/api/alumni?year=${encodeURIComponent(year)}`
-          : "/api/alumni"
+        classSetId
+          ? `/api/alumni?classSetId=${encodeURIComponent(classSetId)}`
+          : year
+            ? `/api/alumni?year=${encodeURIComponent(year)}`
+            : "/api/alumni"
       );
       const items = Array.isArray(alumni) ? alumni : [];
-      const heading = year ? `${year} Set` : "Alumni directory";
-      const description = year
+      const heading = classSetId ? "Alumni class set" : year ? `${year} Set` : "Alumni directory";
+      const description = classSetId
+        ? "Verified members of this public alumni class set."
+        : year
         ? `Alumni records grouped by exit year ${year}. Entry year and other historical details may not be available yet.`
         : "Members of our alumni community.";
 

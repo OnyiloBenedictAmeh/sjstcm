@@ -32,7 +32,7 @@
       <h1>Create your alumni profile</h1>
       <p class="lead">Historical alumni can create a profile even when no old student record exists. Share what you remember; exact dates and documents are not required.</p>
       <p class="step-help">The school can assign a permanent alumni ID after verification. Years and Set labels describe school history; they are not your identity number.</p>
-      <p class="demo-note"><strong>Frontend preview:</strong> this form demonstrates the registration flow. It does not create an account or send or save your information yet.</p>
+      <p class="demo-note"><strong>Privacy:</strong> registration creates a private account and a profile pending school verification. Public visibility remains off until staff verify and publish your profile.</p>
     </header>
 
     <ol class="onboarding-steps" aria-label="Registration steps">
@@ -80,17 +80,17 @@
 
       <section class="wizard-step" data-step="3" aria-labelledby="profile-title" hidden>
         <h2 id="profile-title">Alumni profile</h2><p class="step-help">Choose what you want others to see. Your contact details stay private in this preview.</p>
-        <div class="form-group"><label for="profile-photo">Profile photo <span>(optional)</span></label><input id="profile-photo" name="profilePhoto" type="file" accept="image/*"><small>Only selected for this preview; it is not uploaded.</small></div>
+        <div class="form-group"><label for="profile-photo">Profile photo</label><input id="profile-photo" name="profilePhoto" type="file" accept="image/*" disabled><small>Photo uploads are not supported yet. You can add one after registration through the school.</small></div>
         <div class="form-group"><label for="occupation">Current occupation <span>(optional)</span></label><input id="occupation" name="occupation" autocomplete="organization-title"></div>
         <div class="form-group"><label for="location">Current location <span>(optional)</span></label><input id="location" name="location" autocomplete="address-level2"></div>
         <div class="form-group"><label for="biography">Short biography <span>(optional)</span></label><textarea id="biography" name="biography" maxlength="500" rows="4" placeholder="A few sentences about your journey since school."></textarea></div>
-        <fieldset class="visibility-choice"><legend>Public profile information</legend><label class="check-row"><input type="checkbox" name="publicOccupation" checked><span>Occupation and biography may appear in the public alumni archive after verification.</span></label><p>Your email and phone number are private and are not included in public profile information.</p></fieldset>
+        <fieldset class="visibility-choice"><legend>Public profile information</legend><label class="check-row"><input id="public-name" type="checkbox" checked><span>Show my name after the school verifies and publishes my profile.</span></label><label class="check-row"><input id="public-school-history" type="checkbox" checked><span>Show my school years and class-set information.</span></label><label class="check-row"><input id="public-occupation" type="checkbox"><span>Show my occupation, location and biography.</span></label><p>Your email, phone and WhatsApp remain private and are never included in public profile responses.</p></fieldset>
       </section>
 
       <section class="wizard-step" data-step="4" aria-labelledby="evidence-title" hidden>
-        <h2 id="evidence-title">Historical evidence <span>(optional)</span></h2><p class="step-help">You can share old school photos, an ID, certificates, or another school document to help with verification.</p>
+        <h2 id="evidence-title">Historical evidence <span>(optional)</span></h2><p class="step-help">Evidence uploads are not supported yet. The school may request documents through a supported channel later.</p>
         <label class="check-row"><input id="no-evidence" name="noEvidence" type="checkbox"><span>I don't have any documents</span></label>
-        <div class="form-group" id="evidence-upload-group"><label for="evidence-files">Choose documents or photos</label><input id="evidence-files" name="evidenceFiles" type="file" accept="image/*,.pdf" multiple><small>Files are not uploaded or saved in this frontend preview.</small></div>
+        <div class="form-group" id="evidence-upload-group"><label for="evidence-files">Documents or photos</label><input id="evidence-files" name="evidenceFiles" type="file" accept="image/*,.pdf" multiple disabled><small>File upload is currently unavailable. No selected files will be submitted.</small></div>
         <p class="private-note">Evidence is for school verification. It will not automatically become public.</p>
       </section>
 
@@ -105,10 +105,8 @@
     </form>
 
     <section id="registration-confirmation" class="confirmation-card" aria-live="polite" hidden>
-      <span class="eyebrow">FRONTEND PREVIEW</span><h2>Registration received</h2>
+      <span class="eyebrow">REGISTRATION RECEIVED</span><h2>Registration received</h2>
       <p class="lead">Your alumni registration has been submitted and is awaiting school verification.</p>
-      <p class="demo-note"><strong>Demo only:</strong> no registration was sent or stored. The reference below is placeholder data until the backend is implemented.</p>
-      <p>Reference number: <strong class="reference-number">ALM-000184</strong></p>
       <h3>What happens next</h3><ol><li>The school reviews your information.</li><li>The school may request additional information.</li><li>Once verified, your profile can become part of the school archive.</li></ol>
       <a class="button" href="alumni/index.html">Return to Alumni</a>
     </section>

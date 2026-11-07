@@ -293,6 +293,31 @@ async function loadCurrentUser() {
   currentUser =
     await api("/api/auth/me");
 
+  if ($("#create-alumni")) $("#create-alumni").hidden = !alumniCan("ALUMNI_MANAGE");
+  if ($("#create-class-set")) $("#create-class-set").hidden = !alumniCan("ALUMNI_MANAGE");
+  const requestNav = document.querySelector('[data-section="requests"]');
+  if (requestNav) requestNav.hidden = !alumniCan("ALUMNI_VERIFY");
+  if ($("#section-requests")) $("#section-requests").hidden = !alumniCan("ALUMNI_VERIFY");
+  if ($("#section-alumni")) $("#section-alumni").hidden = !alumniCan("ALUMNI_VIEW");
+
+  const canStudentsView = alumniCan("STUDENTS_VIEW") || alumniCan("STUDENTS_MANAGE");
+  const canStudentsManage = alumniCan("STUDENTS_MANAGE");
+  const canAcademicsView = alumniCan("ACADEMICS_VIEW") || alumniCan("ACADEMICS_MANAGE");
+  const canAcademicsManage = alumniCan("ACADEMICS_MANAGE");
+  for (const [section, allowed] of [["students", canStudentsView], ["academics", canAcademicsView]]) {
+    const nav = document.querySelector('[data-section="' + section + '"]');
+    const panel = document.getElementById("section-" + section);
+    if (nav) nav.hidden = !allowed;
+    if (panel) panel.hidden = !allowed;
+    const quick = document.querySelector('[data-section-target="' + section + '"]');
+    if (quick) quick.hidden = !allowed;
+  }
+  if ($("#add-student-button")) $("#add-student-button").hidden = !canStudentsManage;
+  if ($("#add-class-btn")) $("#add-class-btn").hidden = !canAcademicsManage;
+  if ($("#edit-class-btn")) $("#edit-class-btn").hidden = !canAcademicsManage;
+  if ($("#add-class-student-btn")) $("#add-class-student-btn").hidden = !canStudentsManage;
+  if ($("#new-session-button")) $("#new-session-button").hidden = !canAcademicsManage;
+
   renderPermittedAreas();
 
 
@@ -455,6 +480,15 @@ function openSection(section) {
 
   if (!sectionInfo[section]) return;
 
+  if (section === "students" && !alumniCan("STUDENTS_VIEW") && !alumniCan("STUDENTS_MANAGE")) {
+    showLockedDoor();
+    return;
+  }
+  if (section === "academics" && !alumniCan("ACADEMICS_VIEW") && !alumniCan("ACADEMICS_MANAGE")) {
+    showLockedDoor();
+    return;
+  }
+
 
   $$(".admin-section")
     .forEach(item => {
@@ -580,6 +614,17 @@ $("#sidebar-overlay")
 // OVERVIEW
 // ============================================================
 
+function showRetryState(selector, message, loader) {
+  setHTML(selector, '<div class="load-error"><p>' + escapeHTML(message) + '</p><button class="button secondary" type="button" data-retry-loader="' + escapeHTML(loader) + '">Retry</button></div>');
+}
+
+document.addEventListener("click", event => {
+  const button = event.target.closest("[data-retry-loader]");
+  if (!button) return;
+  const loaders = { overview: loadOverview, students: () => loadStudents($("#student-search")?.value.trim() || "", studentPage), overviewStudents: loadOverviewStudents, academics: loadAcademics, classes: loadClasses };
+  loaders[button.dataset.retryLoader]?.();
+});
+
 async function loadOverview() {
 
   try {
@@ -589,45 +634,16 @@ async function loadOverview() {
 
 
     const stats = [
-
-      {
-        label: "Students",
-        value: overview.students,
-        icon: "bx bx-group"
-      },
-
-      {
-        label: "Alumni",
-        value: overview.alumni,
-        icon: "bx bx-user-voice"
-      },
-
-      {
-        label: "News Articles",
-        value: overview.news,
-        icon: "bx bx-news"
-      },
-
-      {
-        label: "Events",
-        value: overview.events,
-        icon: "bx bx-calendar-event"
-      },
-
-      {
-        label: "Unread Messages",
-        value: overview.unreadMessages,
-        icon: "bx bx-envelope"
-      },
-
-      {
-        label: "Pending Requests",
-        value:
-          overview.pendingUpdateRequests,
-        icon: "bx bx-time-five"
-      }
-
-    ];
+      { label: "Total students", value: overview.students, icon: "bx bx-group" },
+      { label: "Active students", value: overview.activeStudents, icon: "bx bx-user-check" },
+      { label: "Currently enrolled", value: overview.currentlyEnrolled, icon: "bx bx-id-card" },
+      { label: "Classes", value: overview.classes, icon: "bx bx-building" },
+      { label: "Alumni", value: overview.alumni, icon: "bx bx-user-voice" },
+      { label: "News articles (including drafts)", value: overview.news, icon: "bx bx-news" },
+      { label: "Events (all dates)", value: overview.events, icon: "bx bx-calendar-event" },
+      { label: "Unread messages", value: overview.unreadMessages, icon: "bx bx-envelope" },
+      { label: "Pending requests", value: overview.pendingUpdateRequests, icon: "bx bx-time-five" }
+    ].filter(item => item.value !== null && item.value !== undefined);
 
 
     setHTML(
@@ -658,6 +674,14 @@ async function loadOverview() {
     );
 
 
+    const sessions = overview.sessions || [];
+    setHTML("#overview-sessions", sessions.length
+      ? sessions.slice(0, 5).map(item => '<div class="compact-row"><span><strong>' + escapeHTML(item.name) + '</strong><small>' + (item.startDate ? formatDate(item.startDate) : "Dates not set") + (item.endDate ? " – " + formatDate(item.endDate) : "") + '</small></span><span class="status-badge ' + (item.isCurrent ? "active" : "") + '">' + (item.isCurrent ? "Current" : "Inactive") + '</span></div>').join("")
+      : '<div class="empty-state">No academic sessions found.</div>');
+    setHTML("#overview-classes", overview.classSummary?.length
+      ? overview.classSummary.map(item => '<div class="compact-row"><span>' + escapeHTML(item.name) + (item.level ? '<small>' + escapeHTML(item.level) + '</small>' : "") + '</span><strong>' + Number(item._count?.enrollments || 0) + ' enrolled</strong></div>').join("")
+      : overview.classes === null ? '<div class="empty-state">Academic summary is not available to this account.</div>' : '<div class="empty-state">No classes found.</div>');
+
     setElementText(
       "#request-count",
       Number(
@@ -681,6 +705,11 @@ async function loadOverview() {
       error
     );
 
+    showRetryState("#stats", error.message || "Dashboard statistics could not be loaded.", "overview");
+    showRetryState("#overview-sessions", "Session summary could not be loaded.", "overview");
+    showRetryState("#overview-classes", "Class summary could not be loaded.", "overview");
+    throw error;
+
   }
 }
 
@@ -690,9 +719,10 @@ async function loadOverview() {
 // ============================================================
 
 let studentSearchTimer = null;
+let studentPage = 1;
 
 
-async function loadStudents(query = "") {
+async function loadStudents(query = "", page = studentPage) {
 
   const table =
     $("#students-table-body");
@@ -718,16 +748,18 @@ async function loadStudents(query = "") {
 
   try {
 
-    const students =
-      await api(
-        `/api/admin/students?q=${encodeURIComponent(query)}`
-      );
+    studentPage = Math.max(1, Number(page) || 1);
+    const params = new URLSearchParams({ q: query, page: String(studentPage), pageSize: "50" });
+    const filters = { status: $("#student-status-filter")?.value, classId: $("#student-class-filter")?.value, sessionId: $("#student-session-filter")?.value, enrollmentStatus: $("#student-enrollment-filter")?.value };
+    Object.entries(filters).forEach(([key, value]) => { if (value) params.set(key, value); });
+    const result = await api(`/api/admin/students?${params}`);
+    const students = Array.isArray(result) ? result : (result.items || []);
 
 
     setElementText(
       "#student-count",
-      `${students.length} student${
-        students.length === 1
+      `${Number(result.total ?? students.length)} student${
+        Number(result.total ?? students.length) === 1
           ? ""
           : "s"
       }`
@@ -758,8 +790,7 @@ async function loadStudents(query = "") {
     table.innerHTML =
       students.map(student => {
 
-        const enrollment =
-          student.enrollments?.[0];
+        const enrollment = student.enrollments?.find(item => item.session?.isCurrent && item.status === "ENROLLED") || student.enrollments?.[0];
 
 
         const fullName =
@@ -845,6 +876,7 @@ async function loadStudents(query = "") {
               >
                 Edit
               </button>
+              <button type="button" class="table-action" data-student-id="${escapeHTML(student.id)}" data-action="view-student">Profile</button>
 
             </td>
 
@@ -870,18 +902,17 @@ async function loadStudents(query = "") {
               );
 
 
-            if (student) {
-
-              openStudentEditor(
-                student
-              );
-
-            }
+            api(`/api/admin/students/${encodeURIComponent(button.dataset.studentId)}`).then(openStudentEditor).catch(error => showToast(error.message, "error"));
 
           }
         );
 
       });
+
+    $$("[data-action='view-student']").forEach(button => button.addEventListener("click", () => openAdminStudentProfile(button.dataset.studentId)));
+    const pagination = $("#student-pagination");
+    if (pagination) pagination.innerHTML = Number(result.pages || 1) > 1 ? `<button class="button secondary" type="button" data-page="${studentPage - 1}" ${studentPage <= 1 ? "disabled" : ""}>Previous</button><span>Page ${studentPage} of ${result.pages}</span><button class="button secondary" type="button" data-page="${studentPage + 1}" ${studentPage >= result.pages ? "disabled" : ""}>Next</button>` : "";
+    pagination?.querySelectorAll("[data-page]").forEach(button => button.addEventListener("click", () => loadStudents(query, Number(button.dataset.page))));
 
 
   } catch (error) {
@@ -895,9 +926,7 @@ async function loadStudents(query = "") {
           class="table-empty error-text"
         >
 
-          ${escapeHTML(
-            error.message
-          )}
+          ${escapeHTML(error.message)} <button type="button" class="button secondary" data-retry="students">Retry</button>
 
         </td>
 
@@ -917,16 +946,7 @@ async function loadStudentFormOptions() {
 
   try {
 
-    const [
-      classes,
-      sessions
-    ] = await Promise.all([
-
-      api("/api/admin/classes"),
-
-      api("/api/admin/sessions")
-
-    ]);
+    const { classes = [], sessions = [] } = await api("/api/admin/students/enrollment-options");
 
 
     const classSelect =
@@ -992,6 +1012,11 @@ async function loadStudentFormOptions() {
 
     window.adminSessions =
       sessions;
+
+    const fill = (selector, rows, label) => { const select = $(selector); if (select) select.innerHTML = `<option value="">${label}</option>` + rows.map(row => `<option value="${escapeHTML(row.id)}">${escapeHTML(row.name)}</option>`).join(""); };
+    fill("#student-class-filter", classes, "All classes");
+    fill("#student-session-filter", sessions, "All sessions");
+    fill("#class-session-filter", sessions, "Current session");
 
 
   } catch (error) {
@@ -1635,10 +1660,8 @@ $("#student-search")
         setTimeout(
           () => {
 
-            loadStudents(
-              event.target.value
-                .trim()
-            );
+            studentPage = 1;
+            loadStudents(event.target.value.trim(), studentPage);
 
           },
           300
@@ -1647,10 +1670,54 @@ $("#student-search")
     }
   );
 
+["#student-status-filter", "#student-class-filter", "#student-session-filter", "#student-enrollment-filter"].forEach(selector => $(selector)?.addEventListener("change", () => { studentPage = 1; loadStudents($("#student-search")?.value.trim() || "", studentPage); }));
+$("#class-session-filter")?.addEventListener("change", () => loadClasses());
+$("#refresh-classes")?.addEventListener("click", () => loadClasses().then(() => showToast("Classes refreshed.")).catch(error => showToast(error.message, "error")));
+$("#students-table-body")?.addEventListener("click", event => { if (event.target.closest("[data-retry='students']")) loadStudents($("#student-search")?.value || "", studentPage); });
+$("#classes-grid")?.addEventListener("click", event => { if (event.target.closest("[data-retry='classes']")) loadClasses(); });
+
 
 // ============================================================
 // ACADEMICS
 // ============================================================
+
+function sessionFormClose() { $("#session-form-panel")?.classList.add("hidden"); $("#session-form")?.reset(); $("#session-form")?.elements.namedItem("id") && ($("#session-form").elements.namedItem("id").value = ""); setMessage("#session-form-status", ""); }
+function sessionFormOpen(item = null) {
+  const form = $("#session-form"); if (!form) return;
+  form.reset(); form.elements.namedItem("id").value = item?.id || ""; form.elements.namedItem("name").value = item?.name || "";
+  form.elements.namedItem("startDate").value = item?.startDate ? new Date(item.startDate).toISOString().slice(0, 10) : "";
+  form.elements.namedItem("endDate").value = item?.endDate ? new Date(item.endDate).toISOString().slice(0, 10) : "";
+  form.elements.namedItem("isCurrent").checked = Boolean(item?.isCurrent); setElementText("#session-form-title", item ? "Edit academic session" : "Create academic session");
+  $("#session-form-panel")?.classList.remove("hidden");
+}
+async function editSession(id) { try { sessionFormOpen(await api(`/api/admin/sessions/${encodeURIComponent(id)}`)); } catch (error) { showToast(error.message, "error"); } }
+async function setCurrentSession(id) { try { await api(`/api/admin/sessions/${encodeURIComponent(id)}/current`, { method: "PATCH", body: "{}" }); showToast("Current session updated."); await Promise.all([loadAcademics(), loadClasses(), loadOverview()]); } catch (error) { showToast(error.message, "error"); } }
+async function deleteSession(id) { if (!window.confirm("Delete this academic session? Sessions with history cannot be deleted.")) return; try { await api(`/api/admin/sessions/${encodeURIComponent(id)}`, { method: "DELETE" }); showToast("Session deleted."); await Promise.all([loadAcademics(), loadClasses(), loadOverview()]); } catch (error) { showToast(error.message, "error"); } }
+
+$("#new-session-button")?.addEventListener("click", () => sessionFormOpen());
+$("#refresh-sessions")?.addEventListener("click", () => loadAcademics().then(() => showToast("Sessions refreshed.")).catch(error => showToast(error.message, "error")));
+$("#close-session-form")?.addEventListener("click", sessionFormClose);
+$("#cancel-session")?.addEventListener("click", sessionFormClose);
+$("#session-form")?.addEventListener("submit", async event => {
+  event.preventDefault(); const form = event.currentTarget; const data = Object.fromEntries(new FormData(form)); data.isCurrent = form.elements.namedItem("isCurrent").checked;
+  try { setMessage("#session-form-status", "Saving session…"); const id = data.id; delete data.id; await api(id ? `/api/admin/sessions/${encodeURIComponent(id)}` : "/api/admin/sessions", { method: id ? "PUT" : "POST", body: JSON.stringify(data) }); sessionFormClose(); showToast("Session saved."); await Promise.all([loadAcademics(), loadClasses(), loadOverview()]); }
+  catch (error) { setMessage("#session-form-status", error.message, "error"); }
+});
+
+$("#student-profile-admin-modal")?.addEventListener("click", event => { if (event.target.id === "student-profile-admin-modal" || event.target.id === "close-student-profile-admin") $("#student-profile-admin-modal").classList.add("hidden"); });
+async function openAdminStudentProfile(id) {
+  const modal = $("#student-profile-admin-modal"), content = $("#student-profile-admin-content"); if (!modal || !content) return;
+  modal.classList.remove("hidden"); content.innerHTML = '<p class="loading-state">Loading student record…</p>';
+  try {
+    const student = await api(`/api/admin/students/${encodeURIComponent(id)}`); setElementText("#student-profile-admin-title", `${studentFullName(student)} · ${student.studentId}`);
+    const opts = window.adminClasses || []; const sessions = window.adminSessions || [];
+    const enrollment = student.currentEnrollment;
+    content.innerHTML = `<div class="student-profile-summary">${student.photoUrl ? `<img src="${escapeHTML(student.photoUrl)}" alt="Student photograph">` : ""}<div><p><strong>Status:</strong> ${escapeHTML(student.status)}</p><p><strong>Email:</strong> ${escapeHTML(student.email || "—")}</p><p><strong>Phone:</strong> ${escapeHTML(student.phone || "—")}</p><p><strong>Portal account:</strong> ${student.hasPortalAccount ? "Linked" : "Not linked"}</p><p><strong>Current enrollment:</strong> ${enrollment ? `${escapeHTML(enrollment.class.name)} · ${escapeHTML(enrollment.session.name)}` : "None"}</p></div></div><h3>Enrollment history</h3>${student.enrollments.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Session</th><th>Class</th><th>Status</th><th></th></tr></thead><tbody>${student.enrollments.map(e => `<tr><td>${escapeHTML(e.session.name)}</td><td>${escapeHTML(e.class.name)}</td><td>${escapeHTML(e.status)}${e.session.isCurrent && e.status === "ENROLLED" ? " · Current" : ""}</td><td>${alumniCan("STUDENTS_MANAGE") ? `<select data-enrollment-status="${escapeHTML(e.id)}">${["ENROLLED","PROMOTED","COMPLETED","WITHDRAWN"].map(s => `<option ${s === e.status ? "selected" : ""}>${s}</option>`).join("")}</select><button class="button secondary" data-save-enrollment="${escapeHTML(e.id)}">Save</button>` : ""}</td></tr>`).join("")}</tbody></table></div>` : '<p class="empty-state">No enrollment history.</p>'}${alumniCan("STUDENTS_MANAGE") ? `<h3>Add enrollment</h3><form id="admin-enrollment-form" class="form-grid"><label>Class<select name="classId" required><option value="">Select class</option>${opts.map(x => `<option value="${escapeHTML(x.id)}">${escapeHTML(x.name)}</option>`).join("")}</select></label><label>Session<select name="sessionId" required><option value="">Select session</option>${sessions.map(x => `<option value="${escapeHTML(x.id)}">${escapeHTML(x.name)}</option>`).join("")}</select></label><label>Status<select name="status">${["ENROLLED","PROMOTED","COMPLETED","WITHDRAWN"].map(x => `<option>${x}</option>`).join("")}</select></label><button class="button" type="submit">Add enrollment</button></form>${enrollment ? `<h3>Record transfer</h3><form id="admin-transfer-form" class="form-grid"><input type="hidden" name="enrollmentId" value="${escapeHTML(enrollment.id)}"><label>New class<select name="classId" required><option value="">Select class</option>${opts.map(x => `<option value="${escapeHTML(x.id)}">${escapeHTML(x.name)}</option>`).join("")}</select></label><label>New session<select name="sessionId" required><option value="">Select session</option>${sessions.filter(x => x.id !== enrollment.sessionId).map(x => `<option value="${escapeHTML(x.id)}">${escapeHTML(x.name)}</option>`).join("")}</select></label><button class="button secondary" type="submit">Record transfer</button></form>` : ""}` : ""}${student.academicRecords ? `<h3>Academic records</h3>${student.academicRecords.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Session</th><th>Subject</th><th>CA</th><th>Exam</th><th>Total</th><th>Grade</th></tr></thead><tbody>${student.academicRecords.map(r => `<tr><td>${escapeHTML(r.session.name)}</td><td>${escapeHTML(r.subject)}</td><td>${escapeHTML(r.caScore ?? "—")}</td><td>${escapeHTML(r.examScore ?? "—")}</td><td>${escapeHTML(r.totalScore ?? "—")}</td><td>${escapeHTML(r.grade ?? "—")}</td></tr>`).join("")}</tbody></table></div>` : '<p class="empty-state">No academic records.</p>'} ` : ""}<p id="profile-operation-status" class="form-status" role="status"></p>`;
+    $("#admin-enrollment-form")?.addEventListener("submit", async ev => { ev.preventDefault(); try { await api(`/api/admin/students/${encodeURIComponent(id)}/enrollments`, { method: "POST", body: JSON.stringify(Object.fromEntries(new FormData(ev.currentTarget))) }); showToast("Enrollment added."); await openAdminStudentProfile(id); await loadStudents($("#student-search")?.value || "", studentPage); } catch (error) { setMessage("#profile-operation-status", error.message, "error"); } });
+    $("#admin-transfer-form")?.addEventListener("submit", async ev => { ev.preventDefault(); try { await api(`/api/admin/students/${encodeURIComponent(id)}/enrollments/transfer`, { method: "POST", body: JSON.stringify(Object.fromEntries(new FormData(ev.currentTarget))) }); showToast("Transfer recorded."); await openAdminStudentProfile(id); await loadStudents($("#student-search")?.value || "", studentPage); } catch (error) { setMessage("#profile-operation-status", error.message, "error"); } });
+    content.querySelectorAll("[data-save-enrollment]").forEach(button => button.addEventListener("click", async () => { const enrollmentId = button.dataset.saveEnrollment; const status = content.querySelector(`[data-enrollment-status="${CSS.escape(enrollmentId)}"]`).value; try { await api(`/api/admin/students/${encodeURIComponent(id)}/enrollments/${encodeURIComponent(enrollmentId)}/status`, { method: "PATCH", body: JSON.stringify({ status }) }); showToast("Enrollment status updated."); await openAdminStudentProfile(id); await loadStudents($("#student-search")?.value || "", studentPage); } catch (error) { showToast(error.message, "error"); } }));
+  } catch (error) { content.innerHTML = `<div class="error-state">${escapeHTML(error.message)} <button class="button secondary" data-profile-retry="${escapeHTML(id)}">Retry</button></div>`; content.querySelector("[data-profile-retry]")?.addEventListener("click", () => openAdminStudentProfile(id)); }
+}
 
 async function loadAcademics() {
 
@@ -1723,6 +1790,7 @@ async function loadAcademics() {
                   }
 
                 </span>
+                ${alumniCan("ACADEMICS_MANAGE") ? `<div class="session-row-actions"><button type="button" class="table-action" data-session-edit="${escapeHTML(item.id)}">Edit</button><button type="button" class="table-action" data-session-current="${escapeHTML(item.id)}" ${item.isCurrent ? "disabled" : ""}>Set current</button><button type="button" class="table-action danger" data-session-delete="${escapeHTML(item.id)}">Delete</button></div>` : ""}
 
               </div>
 
@@ -1780,6 +1848,9 @@ async function loadAcademics() {
 
     window.adminSessions =
       sessions;
+    $$(`[data-session-edit]`).forEach(button => button.addEventListener("click", () => editSession(button.dataset.sessionEdit)));
+    $$(`[data-session-current]`).forEach(button => button.addEventListener("click", () => setCurrentSession(button.dataset.sessionCurrent)));
+    $$(`[data-session-delete]`).forEach(button => button.addEventListener("click", () => deleteSession(button.dataset.sessionDelete)));
 
 
   } catch (error) {
@@ -1788,6 +1859,8 @@ async function loadAcademics() {
       "LOAD ACADEMICS ERROR:",
       error
     );
+    showRetryState("#sessions-list", error.message || "Unable to load sessions.", "academics");
+    throw error;
 
   }
 
@@ -1810,9 +1883,7 @@ async function loadClasses() {
   try {
 
     const classes =
-      await api(
-        "/api/admin/classes"
-      );
+      await api(`/api/admin/classes${$("#class-session-filter")?.value ? `?sessionId=${encodeURIComponent($("#class-session-filter").value)}` : ""}`);
 
 
     window.adminClasses =
@@ -1828,7 +1899,7 @@ async function loadClasses() {
 
       <div class="empty">
 
-        Unable to load classes.
+        ${escapeHTML(error.message || "Unable to load classes.")} <button type="button" class="button secondary" data-retry="classes">Retry</button>
 
       </div>
 
@@ -1839,6 +1910,7 @@ async function loadClasses() {
       "LOAD CLASSES ERROR:",
       error
     );
+    throw error;
 
   }
 }
@@ -3235,268 +3307,194 @@ $("#add-class-student-btn")
 // ALUMNI
 // ============================================================
 
-async function loadAlumni() {
-
-  try {
-
-    const requests =
-      await api(
-        "/api/admin/update-requests"
-      );
-
-
-    const list =
-      $("#alumni-list");
-
-
-    if (!list) return;
-
-
-    if (!requests.length) {
-
-      list.innerHTML = `
-
-        <div class="empty-state">
-
-          No alumni update requests.
-
-        </div>
-
-      `;
-
-    } else {
-
-      list.innerHTML =
-        requests.map(request => {
-
-          const student =
-            request.alumni?.student;
-
-
-          return `
-
-            <article
-              class="request-item"
-            >
-
-
-              <div
-                class="request-main"
-              >
-
-
-                <div
-                  class="request-avatar"
-                >
-
-                  ${escapeHTML(
-                    (
-                      student?.firstName ||
-                      "A"
-                    ).charAt(0)
-                  )}
-
-                </div>
-
-
-                <div>
-
-                  <strong>
-
-                    ${escapeHTML(
-                      student
-                        ? studentFullName(
-                            student
-                          )
-                        : "Alumni"
-                    )}
-
-                  </strong>
-
-
-                  <small>
-
-                    ${escapeHTML(
-                      student?.studentId ||
-                      "No student ID"
-                    )}
-
-                  </small>
-
-
-                  <small>
-
-                    Submitted
-                    ${formatDateTime(
-                      request.createdAt
-                    )}
-
-                  </small>
-
-                </div>
-
-
-              </div>
-
-
-              <div
-                class="request-status"
-              >
-
-                <span
-                  class="status-badge ${String(
-                    request.status ||
-                    ""
-                  ).toLowerCase()}"
-                >
-
-                  ${escapeHTML(
-                    request.status ||
-                    "PENDING"
-                  )}
-
-                </span>
-
-              </div>
-
-
-              <div
-                class="request-payload"
-              >
-
-                <strong>
-                  Requested changes
-                </strong>
-
-
-                <pre>${escapeHTML(
-                  JSON.stringify(
-                    request.payload ||
-                      {},
-                    null,
-                    2
-                  )
-                )}</pre>
-
-              </div>
-
-
-            </article>
-
-          `;
-
-        }).join("");
-
-    }
-
-
-    setElementText(
-      "#request-count",
-      requests.filter(
-        request =>
-          request.status ===
-          "PENDING"
-      ).length
-    );
-
-
-  } catch (error) {
-
-    console.error(
-      "LOAD ALUMNI ERROR:",
-      error
-    );
-
-  }
+function alumniCan(permission) {
+  return currentUser?.role === "ADMIN" || currentUser?.permissions?.includes(permission);
 }
 
+let adminAlumni = [];
+let adminClassSets = [];
+let adminAlumniYears = [];
+const alumniModal = $("#alumni-modal");
 
-// ============================================================
-// ALUMNI YEARS
-// ============================================================
+function renderAlumni() {
+  const list = $("#alumni-list");
+  if (!list) return;
+  if (!adminAlumni.length) { list.innerHTML = '<p class="empty-state">No alumni records match these filters.</p>'; return; }
+  list.innerHTML = `<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Name</th><th>Alumni ID</th><th>School years</th><th>Class sets</th><th>Status</th><th>Visibility</th><th></th></tr></thead><tbody>${adminAlumni.map(a => `<tr><td><strong>${escapeHTML(a.fullName)}</strong><small>${escapeHTML(a.user?.email || "No portal account")}</small></td><td>${escapeHTML(a.alumniId)}</td><td>${escapeHTML(a.entryYear || "?")} – ${escapeHTML(a.exitYear || a.graduationYear || "?")}</td><td>${(a.classMemberships || []).map(m => escapeHTML(m.classSet.displayName)).join(", ") || "—"}</td><td><span class="status-badge ${escapeHTML(String(a.verificationStatus).toLowerCase())}">${escapeHTML(a.verificationStatus.replaceAll("_", " "))}</span></td><td>${a.isPublic ? "Public" : "Private"}</td><td><button class="button secondary alumni-open" data-id="${escapeHTML(a.id)}" type="button">Details</button></td></tr>`).join("")}</tbody></table></div>`;
+}
+
+async function loadAlumni() {
+  const list = $("#alumni-list");
+  if (list) list.innerHTML = '<div class="list-loading">Loading alumni records...</div>';
+  const params = new URLSearchParams();
+  const q = $("#alumni-search")?.value.trim();
+  const status = $("#alumni-status-filter")?.value;
+  const year = $("#alumni-year-filter")?.value;
+  const classSetId = $("#alumni-class-filter")?.value;
+  if (q) params.set("q", q);
+  if (status) params.set("status", status);
+  if (year) params.set("year", year);
+  if (classSetId) params.set("classSetId", classSetId);
+  try { adminAlumni = await api(`/api/admin/alumni?${params}`); renderAlumni(); }
+  catch (e) { if (list) list.innerHTML = `<p class="empty-state error">${escapeHTML(e.message || "Unable to load alumni records.")}</p>`; }
+}
+
+function fillAlumniFilters() {
+  const yearFilter = $("#alumni-year-filter"), classFilter = $("#alumni-class-filter");
+  if (yearFilter) {
+    const selected = yearFilter.value;
+    const years = adminAlumniYears;
+    yearFilter.innerHTML = '<option value="">All years</option>' + years.map(y => '<option value="' + y + '">' + y + '</option>').join("");
+    yearFilter.value = years.includes(Number(selected)) ? selected : "";
+  }
+  if (classFilter) {
+    const selected = classFilter.value;
+    classFilter.innerHTML = '<option value="">All class sets</option>' + adminClassSets.map(s => `<option value="${escapeHTML(s.id)}">${escapeHTML(s.displayName)}</option>`).join("");
+    classFilter.value = adminClassSets.some(s => s.id === selected) ? selected : "";
+  }
+}
 
 async function loadAlumniYears() {
-
   try {
-
-    const years =
-      await api(
-        "/api/alumni/years"
-      );
-
-
-    const select =
-      $("#alumni-year-filter");
-
-
-    if (!select) return;
-
-
-    const current =
-      select.value;
-
-
-    select.innerHTML = `
-
-      <option value="">
-        All graduation years
-      </option>
-
-      ${years.map(year => `
-
-        <option
-          value="${escapeHTML(year)}"
-        >
-
-          ${escapeHTML(year)}
-
-        </option>
-
-      `).join("")}
-
-    `;
-
-
-    if (
-      years
-        .map(String)
-        .includes(String(current))
-    ) {
-
-      select.value =
-        current;
-
-    }
-
-
-  } catch (error) {
-
-    console.error(
-      "LOAD ALUMNI YEARS ERROR:",
-      error
-    );
-
+    const [sets, all] = await Promise.all([api("/api/admin/alumni/class-sets"), api("/api/admin/alumni")]);
+    adminClassSets = sets;
+    adminAlumniYears = [...new Set(all.map(a => a.exitYear || a.graduationYear).filter(Boolean))].sort((a,b) => b-a);
+    fillAlumniFilters(); renderClassSets();
   }
+  catch (e) { const box = $("#alumni-class-sets"); if (box) box.innerHTML = `<p class="empty-state error">${escapeHTML(e.message)}</p>`; }
+}
 
+function renderClassSets() {
+  const box = $("#alumni-class-sets"); if (!box) return;
+  if (!adminClassSets.length) { box.innerHTML = '<p class="empty-state">No class sets created yet.</p>'; return; }
+  const canManage = alumniCan("ALUMNI_MANAGE");
+  box.innerHTML = `<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Class set</th><th>Years</th><th>Members</th><th>Public</th><th></th></tr></thead><tbody>${adminClassSets.map(s => `<tr><td>${escapeHTML(s.displayName)}</td><td>${escapeHTML(s.entryYear || "?")} – ${escapeHTML(s.exitYear || "?")}</td><td>${s._count?.members || 0}</td><td>${s.isPublic ? "Yes" : "No"}</td><td>${canManage ? `<button class="button secondary edit-class-set" data-id="${escapeHTML(s.id)}" type="button">Edit</button>` : ""}</td></tr>`).join("")}</tbody></table></div>`;
+}
+
+function alumniDetailMarkup(a, creating = false) {
+  const manage = alumniCan("ALUMNI_MANAGE"), verify = alumniCan("ALUMNI_VERIFY");
+  return `<form class="admin-form alumni-edit-form" data-id="${escapeHTML(a?.id || "")}">
+    <div class="form-grid"><label><span>Full name</span><input name="fullName" required maxlength="160" value="${escapeHTML(a?.fullName || "")}" ${manage ? "" : "disabled"}></label><label><span>Name while attending</span><input name="nameWhileAttending" value="${escapeHTML(a?.nameWhileAttending || "")}" ${manage ? "" : "disabled"}></label><label><span>Former name</span><input name="formerName" value="${escapeHTML(a?.formerName || "")}" ${manage ? "" : "disabled"}></label><label><span>Contact phone (private)</span><input name="phone" value="${escapeHTML(a?.phone || "")}" ${manage ? "" : "disabled"}></label><label><span>WhatsApp (private)</span><input name="whatsapp" value="${escapeHTML(a?.whatsapp || "")}" ${manage ? "" : "disabled"}></label><label><span>Entry year</span><input name="entryYear" type="number" min="1900" max="${new Date().getFullYear() + 1}" value="${escapeHTML(a?.entryYear || "")}" ${manage ? "" : "disabled"}></label><label><span>Exit year</span><input name="exitYear" type="number" min="1900" max="${new Date().getFullYear() + 1}" value="${escapeHTML(a?.exitYear || "")}" ${manage ? "" : "disabled"}></label><label><span>Class / set label</span><input name="graduationClass" value="${escapeHTML(a?.graduationClass || "")}" ${manage ? "" : "disabled"}></label><label><span>Occupation</span><input name="occupation" value="${escapeHTML(a?.occupation || "")}" ${manage ? "" : "disabled"}></label><label><span>Company</span><input name="company" value="${escapeHTML(a?.company || "")}" ${manage ? "" : "disabled"}></label><label><span>Location</span><input name="location" value="${escapeHTML(a?.location || "")}" ${manage ? "" : "disabled"}></label></div>
+    <label><span>Biography</span><textarea name="bio" rows="3" ${manage ? "" : "disabled"}>${escapeHTML(a?.bio || "")}</textarea></label>
+    <fieldset class="admin-form-grid"><legend>Public profile controls</legend>${[["isPublic","Publicly listed (turn off to archive from directory)"],["publicName","Show name"],["publicFormerName","Show former name"],["publicSchoolHistory","Show school history"],["publicOccupation","Show occupation"],["publicLocation","Show location"],["publicBiography","Show biography"],["publicMemories","Show memories"]].map(([k,label])=>`<label class="check-row"><input type="checkbox" name="${k}" ${a?.[k] ? "checked" : ""} ${manage ? "" : "disabled"}><span>${label}</span></label>`).join("")}</fieldset>
+    ${manage ? `<button class="button" type="submit">${creating ? "Create record" : "Save changes"}</button>` : ""}
+  </form>
+  ${!creating ? `<section class="alumni-detail-section"><h3>Verification</h3><p>Status: <strong>${escapeHTML(a.verificationStatus)}</strong> · Registered ${formatDateTime(a.createdAt)}</p><div class="alumni-actions">${verify ? `<button type="button" class="button verify-alumni" data-status="VERIFIED" data-id="${escapeHTML(a.id)}">Verify</button><button type="button" class="button secondary verify-alumni" data-status="NEEDS_INFORMATION" data-id="${escapeHTML(a.id)}">Request information</button><button type="button" class="button danger verify-alumni" data-status="REJECTED" data-id="${escapeHTML(a.id)}">Reject</button>` : ""}</div><div class="review-history">${(a.reviews || []).map(r=>`<p><span class="status-badge">${escapeHTML(r.newStatus)}</span> · ${formatDateTime(r.createdAt)} · ${escapeHTML(r.reviewer?.email || "Reviewer")}${r.notes ? `<br>${escapeHTML(r.notes)}` : ""}</p>`).join("") || "No decisions recorded."}</div></section>
+  <section class="alumni-detail-section"><h3>Student record link</h3><p>${a.student ? `${escapeHTML(studentFullName(a.student))} · ${escapeHTML(a.student.studentId)} · ${escapeHTML(a.student.status)}` : "No student record linked. Alumni records do not require a student link."}</p>${verify && !a.student ? `<form class="student-link-form" data-id="${escapeHTML(a.id)}"><label><span>Find student by name, email or ID</span><input name="q" minlength="2" required><button class="button secondary" type="submit">Search</button></label><div class="student-search-results"></div></form>` : ""}</section>
+  <section class="alumni-detail-section"><h3>Class-set memberships</h3><ul>${(a.classMemberships || []).map(m=>`<li>${escapeHTML(m.classSet.displayName)} <span class="status-badge">${escapeHTML(m.status)}</span> ${verify && m.status !== "VERIFIED" && a.verificationStatus === "VERIFIED" ? `<button type="button" class="text-button verify-membership" data-id="${escapeHTML(a.id)}" data-set="${escapeHTML(m.classSetId)}">Verify membership</button>` : ""} ${manage ? `<button type="button" class="text-button remove-membership" data-id="${escapeHTML(a.id)}" data-set="${escapeHTML(m.classSetId)}">Remove</button>` : ""}</li>`).join("") || "<li>No class sets assigned.</li>"}</ul>${manage ? `<form class="membership-form" data-id="${escapeHTML(a.id)}"><label><span>Assign another set</span><select name="classSetId" required><option value="">Choose class set</option>${adminClassSets.map(s=>`<option value="${escapeHTML(s.id)}">${escapeHTML(s.displayName)}</option>`).join("")}</select></label><button class="button secondary" type="submit">Assign set</button></form>` : ""}</section>` : ""}`;
+}
+
+async function openAlumni(id = "") {
+  const creating = !id;
+  try {
+    const a = creating ? null : await api(`/api/admin/alumni/${encodeURIComponent(id)}`);
+    $("#alumni-modal-title").textContent = creating ? "Create alumni record" : a.fullName;
+    $("#alumni-detail-content").innerHTML = alumniDetailMarkup(a, creating);
+    alumniModal.classList.remove("hidden");
+  } catch (e) { showToast(e.message || "Unable to open alumni record.", "error"); }
+}
+
+async function loadUpdateRequests() {
+  const list = $("#requests-list"); if (!list) return;
+  list.innerHTML = '<div class="list-loading">Loading update requests...</div>';
+  try {
+    const requests = await api("/api/admin/update-requests");
+    setElementText("#request-count", requests.filter(r => r.status === "PENDING").length);
+    if (!requests.length) { list.innerHTML = '<p class="empty-state">No profile update requests.</p>'; return; }
+    list.innerHTML = requests.map(r => { const review = r.payload?._review; const payload = r.payload?.requestedChanges || (r.payload && typeof r.payload === "object" ? Object.fromEntries(Object.entries(r.payload).filter(([key]) => key !== "_review")) : r.payload); return `<article class="request-item"><div class="request-main"><div class="request-avatar">${escapeHTML((r.alumni?.fullName || "A").charAt(0))}</div><div><strong>${escapeHTML(r.alumni?.fullName || "Alumni")}</strong><small>${escapeHTML(r.alumni?.user?.email || "Account email unavailable")}</small><small>Submitted ${formatDateTime(r.createdAt)}</small></div></div><span class="status-badge ${String(r.status).toLowerCase()}">${escapeHTML(review?.decision || r.status)}</span><div class="request-payload"><strong>Requested changes</strong><pre>${escapeHTML(JSON.stringify(payload, null, 2))}</pre>${review?.notes ? `<p>Staff note: ${escapeHTML(review.notes)}</p>` : ""}</div>${r.status === "PENDING" && alumniCan("ALUMNI_VERIFY") ? `<div class="alumni-actions"><button class="button review-request" data-id="${escapeHTML(r.id)}" data-decision="APPROVED">Approve</button><button class="button secondary review-request" data-id="${escapeHTML(r.id)}" data-decision="NEEDS_INFORMATION">Request information</button><button class="button danger review-request" data-id="${escapeHTML(r.id)}" data-decision="REJECTED">Reject</button></div>` : ""}</article>`; }).join("");
+  } catch (e) { list.innerHTML = `<p class="empty-state error">${escapeHTML(e.message || "Unable to load requests.")}</p>`; }
 }
 
 
-// ============================================================
-// ALUMNI SEARCH
-// ============================================================
+let alumniSearchTimer;
+$("#alumni-search")?.addEventListener("input", () => { clearTimeout(alumniSearchTimer); alumniSearchTimer = setTimeout(loadAlumni, 250); });
+$("#alumni-status-filter")?.addEventListener("change", loadAlumni);
+$("#alumni-year-filter")?.addEventListener("change", loadAlumni);
+$("#alumni-class-filter")?.addEventListener("change", loadAlumni);
+$("#create-alumni")?.addEventListener("click", () => alumniCan("ALUMNI_MANAGE") && openAlumni());
+$("#alumni-list")?.addEventListener("click", event => {
+  const button = event.target.closest(".alumni-open"); if (button) openAlumni(button.dataset.id);
+});
+$("[data-close-alumni]")?.addEventListener("click", () => alumniModal.classList.add("hidden"));
+alumniModal?.addEventListener("click", event => { if (event.target === alumniModal) alumniModal.classList.add("hidden"); });
+$("#alumni-detail-content")?.addEventListener("submit", async event => {
+  event.preventDefault(); const form = event.target;
+  if (form.matches(".alumni-edit-form")) {
+    const fd = new FormData(form), body = Object.fromEntries(fd.entries());
+    for (const key of ["entryYear", "exitYear"]) body[key] = body[key] ? Number(body[key]) : null;
+    for (const key of ["isPublic", "publicName", "publicFormerName", "publicSchoolHistory", "publicPhoto", "publicOccupation", "publicLocation", "publicBiography", "publicMemories"]) body[key] = fd.has(key);
+    try { const id = form.dataset.id; const existing = adminAlumni.find(a => a.id === id); if (id && existing && existing.isPublic !== body.isPublic && !confirm(body.isPublic ? "Publish this profile? Only verified profiles with opted-in fields are shown." : "Remove this profile from the public alumni directory?")) return; const saved = await api(id ? `/api/admin/alumni/${encodeURIComponent(id)}` : "/api/admin/alumni", { method: id ? "PUT" : "POST", body: JSON.stringify(body) }); showToast(id ? "Alumni record updated." : "Alumni record created."); alumniModal.classList.add("hidden"); await loadAlumni(); if (saved.id) openAlumni(saved.id); }
+    catch (e) { showToast(e.message || "Unable to save alumni record.", "error"); }
+  } else if (form.matches(".student-link-form")) {
+    const q = new FormData(form).get("q"); const box = form.querySelector(".student-search-results"); box.innerHTML = '<p>Searching student records…</p>';
+    try { const rows = await api(`/api/admin/students/search?q=${encodeURIComponent(q)}`); box.innerHTML = rows.length ? rows.map(s => `<div class="student-match"><span><strong>${escapeHTML(studentFullName(s))}</strong><small>${escapeHTML(s.studentId)} · ${escapeHTML(s.email || "No email")} · ${escapeHTML(s.status)}</small></span><button type="button" class="button secondary choose-student" data-student="${escapeHTML(s.id)}" data-label="${escapeHTML(`${studentFullName(s)} (${s.studentId})`)}">Link</button></div>`).join("") : '<p class="empty-state">No matching student records.</p>'; }
+    catch (e) { box.innerHTML = `<p class="empty-state error">${escapeHTML(e.message)}</p>`; }
+  } else if (form.matches(".membership-form")) {
+    const classSetId = new FormData(form).get("classSetId");
+    try { await api(`/api/admin/alumni/${encodeURIComponent(form.dataset.id)}/class-sets`, { method: "POST", body: JSON.stringify({ classSetId }) }); showToast("Class set assigned."); await openAlumni(form.dataset.id); await loadAlumniYears(); await loadAlumni(); }
+    catch (e) { showToast(e.message || "Unable to assign class set.", "error"); }
+  }
+});
+$("#alumni-detail-content")?.addEventListener("click", async event => {
+  const verify = event.target.closest(".verify-alumni");
+  if (verify) {
+    const status = verify.dataset.status;
+    if (!confirm(`${status === "VERIFIED" ? "Verify" : status === "REJECTED" ? "Reject" : "Request more information for"} this alumni profile?`)) return;
+    const notes = status === "NEEDS_INFORMATION" || status === "REJECTED" ? prompt("Add a note for the review history:") : prompt("Optional verification note:") || "";
+    if (status === "NEEDS_INFORMATION" && !notes?.trim()) return;
+    try { await api(`/api/admin/alumni/${encodeURIComponent(verify.dataset.id)}/verification`, { method: "POST", body: JSON.stringify({ status, notes }) }); showToast(`Alumni status set to ${status.replaceAll("_", " ")}.`); await loadAlumni(); await openAlumni(verify.dataset.id); }
+    catch (e) { showToast(e.message || "Verification failed.", "error"); }
+    return;
+  }
+  const choose = event.target.closest(".choose-student");
+  if (choose) {
+    if (!confirm(`Confirm that ${choose.dataset.label} is the correct match?`)) return;
+    const form = choose.closest(".student-link-form");
+    try { await api(`/api/admin/alumni/${encodeURIComponent(form.dataset.id)}/student-link`, { method: "PUT", body: JSON.stringify({ studentId: choose.dataset.student }) }); showToast("Student record linked. Student ID was not changed."); await loadAlumni(); await openAlumni(form.dataset.id); }
+    catch (e) { showToast(e.message || "Unable to link student.", "error"); }
+    return;
+  }
+  const remove = event.target.closest(".remove-membership");
+  if (remove && confirm("Remove this class-set membership?")) {
+    try { await api(`/api/admin/alumni/${encodeURIComponent(remove.dataset.id)}/class-sets/${encodeURIComponent(remove.dataset.set)}`, { method: "DELETE" }); showToast("Membership removed."); await loadAlumniYears(); await loadAlumni(); await openAlumni(remove.dataset.id); }
+    catch (e) { showToast(e.message || "Unable to remove membership.", "error"); }
+  }
+  const membership = event.target.closest(".verify-membership");
+  if (membership && confirm("Verify this class-set membership?")) {
+    try { await api(`/api/admin/alumni/${encodeURIComponent(membership.dataset.id)}/class-sets/${encodeURIComponent(membership.dataset.set)}`, { method: "PATCH", body: JSON.stringify({ status: "VERIFIED" }) }); showToast("Class-set membership verified."); await loadAlumni(); await openAlumni(membership.dataset.id); }
+    catch (e) { showToast(e.message || "Unable to verify membership.", "error"); }
+  }
+});
 
-$("#alumni-search")
-  ?.addEventListener(
-    "input",
-    () => {
-
-      // Alumni endpoint currently
-      // returns the full dataset.
-      // Filtering can be added once
-      // the admin alumni endpoint exists.
-
-    }
-  );
+function openClassSet(id = "") {
+  const set = adminClassSets.find(s => s.id === id);
+  const form = $("#class-set-form"); form.reset(); form.elements.id.value = set?.id || "";
+  for (const key of ["displayName", "entryYear", "exitYear", "approximatePeriod", "notes"]) form.elements[key].value = set?.[key] ?? "";
+  form.elements.isPublic.checked = Boolean(set?.isPublic);
+  for (const key of ["entryYear", "exitYear"]) form.elements[key].max = String(new Date().getFullYear() + 1);
+  $("#class-set-modal-title").textContent = set ? "Edit class set" : "Add class set";
+  $("#class-set-modal").classList.remove("hidden");
+}
+$("#create-class-set")?.addEventListener("click", () => alumniCan("ALUMNI_MANAGE") && openClassSet());
+$("#alumni-class-sets")?.addEventListener("click", event => { const b=event.target.closest(".edit-class-set"); if (b) openClassSet(b.dataset.id); });
+$$("[data-close-class-set]").forEach(b => b.addEventListener("click", () => $("#class-set-modal").classList.add("hidden")));
+$("#class-set-form")?.addEventListener("submit", async event => {
+  event.preventDefault(); const f=event.currentTarget, fd=new FormData(f), id=fd.get("id");
+  const body={ displayName:fd.get("displayName"), entryYear:fd.get("entryYear")||null, exitYear:fd.get("exitYear")||null, approximatePeriod:fd.get("approximatePeriod"), notes:fd.get("notes"), isPublic:fd.has("isPublic") };
+  const existing = adminClassSets.find(item => item.id === id);
+  if (existing && existing.isPublic !== body.isPublic && !confirm(body.isPublic ? "Publish this class set and its verified member list?" : "Hide this class set from the public site?")) return;
+  try { await api(id ? `/api/admin/alumni/class-sets/${encodeURIComponent(id)}` : "/api/admin/alumni/class-sets", { method:id?"PUT":"POST", body:JSON.stringify(body) }); $("#class-set-modal").classList.add("hidden"); showToast(id?"Class set updated.":"Class set created."); await loadAlumniYears(); await loadAlumni(); }
+  catch(e) { setMessage("#class-set-form-status", e.message || "Unable to save class set.", "error"); }
+});
+$("#requests-list")?.addEventListener("click", async event => {
+  const button=event.target.closest(".review-request"); if (!button) return;
+  const decision=button.dataset.decision;
+  if (!confirm(`Confirm ${decision.replaceAll("_", " ").toLowerCase()} for this request?`)) return;
+  const notes = decision === "NEEDS_INFORMATION" || decision === "REJECTED" ? prompt("Add a note:") : prompt("Optional review note:") || "";
+  if (decision === "NEEDS_INFORMATION" && !notes?.trim()) return;
+  try { await api(`/api/admin/update-requests/${encodeURIComponent(button.dataset.id)}/review`, { method:"POST", body:JSON.stringify({ decision, notes }) }); showToast("Update request reviewed."); await loadUpdateRequests(); }
+  catch(e) { showToast(e.message || "Unable to review request.", "error"); }
+});
 
 
 // ============================================================
@@ -3763,6 +3761,251 @@ async function loadDepartments() {
     );
 
   }
+}
+
+// ============================================================
+// DATABASE-BACKED CONTENT MANAGEMENT
+// ============================================================
+
+const contentPermissions = { news: "CONTENT_VIEW", departments: "CONTENT_VIEW", events: "EVENTS_MANAGE", gallery: "GALLERY_MANAGE" };
+const contentManagePermissions = { news: "CONTENT_MANAGE", departments: "CONTENT_MANAGE", events: "EVENTS_MANAGE", gallery: "GALLERY_MANAGE" };
+const contentState = { news: [], events: [], departments: [], gallery: [] };
+const contentListIds = { news: "news-list", events: "events-list", departments: "departments-list", gallery: "gallery-list" };
+const contentForms = { news: "news-form", events: "event-form", departments: "department-form", gallery: "gallery-form" };
+const contentEndpoints = { news: "/api/admin/news", events: "/api/admin/events", departments: "/api/admin/departments", gallery: "/api/admin/gallery" };
+const contentLabels = { news: "News article", events: "Event", departments: "Department", gallery: "Gallery photo" };
+const contentPanelIds = { news: "news-form-panel", events: "event-form-panel", departments: "department-form-panel", gallery: "gallery-form-panel" };
+const contentCan = (type, manage = false) => currentUser?.role === "ADMIN" || currentUser?.permissions?.includes((manage ? contentManagePermissions : contentPermissions)[type]) || (!manage && currentUser?.permissions?.includes(contentManagePermissions[type]));
+
+const tickerEndpoint = "/api/admin/breaking-news";
+let tickerItems = [];
+
+function localDateTimeValue(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+}
+
+function renderTickerAdmin() {
+  const list = document.getElementById("ticker-admin-list");
+  if (!list) return;
+  if (!tickerItems.length) { list.innerHTML = '<div class="empty-state">No ticker headlines yet.</div>'; return; }
+  list.innerHTML = tickerItems.map(item => `<article class="content-row"><div><strong>${escapeHTML(item.headline)}</strong><small>${item.isActive ? "Active" : "Inactive"} · Priority ${Number(item.priority) || 0}${item.startsAt ? ` · Starts ${formatDateTime(item.startsAt)}` : ""}${item.expiresAt ? ` · Expires ${formatDateTime(item.expiresAt)}` : ""}</small><small>${escapeHTML(item.destinationUrl || "No destination link")}</small></div><div class="content-row-actions"><button class="button secondary" type="button" data-ticker-edit="${escapeHTML(item.id)}">Edit</button><button class="button secondary" type="button" data-ticker-toggle="${escapeHTML(item.id)}">${item.isActive ? "Deactivate" : "Activate"}</button><button class="button danger" type="button" data-ticker-delete="${escapeHTML(item.id)}">Delete</button></div></article>`).join("");
+}
+
+async function loadTickerAdmin() {
+  const list = document.getElementById("ticker-admin-list");
+  if (!contentCan("news", true)) { if (list) list.hidden = true; return; }
+  if (list) { list.hidden = false; list.innerHTML = '<div class="list-loading">Loading ticker headlines...</div>'; }
+  try { tickerItems = await api(tickerEndpoint); renderTickerAdmin(); }
+  catch (error) { if (list) list.innerHTML = `<p class="empty-state error">${escapeHTML(error.message || "Unable to load ticker headlines.")}</p>`; }
+}
+
+function showTickerForm(item = null) {
+  const form = document.getElementById("ticker-form");
+  if (!form) return;
+  form.reset();
+  form.elements.id.value = item?.id || "";
+  form.elements.headline.value = item?.headline || "";
+  form.elements.destinationUrl.value = item?.destinationUrl || "";
+  form.elements.priority.value = item?.priority ?? 0;
+  form.elements.startsAt.value = localDateTimeValue(item?.startsAt);
+  form.elements.expiresAt.value = localDateTimeValue(item?.expiresAt);
+  form.elements.isActive.checked = item ? item.isActive === true : true;
+  form.classList.remove("hidden");
+  form.elements.headline.focus();
+}
+
+function initializeTickerManagement() {
+  const panel = document.getElementById("ticker-admin-panel");
+  const form = document.getElementById("ticker-form");
+  if (!panel || !form || panel.dataset.initialized === "true") return;
+  panel.dataset.initialized = "true";
+  const canManage = contentCan("news", true);
+  panel.hidden = !canManage;
+  if (!canManage) return;
+  document.getElementById("new-ticker-item")?.addEventListener("click", () => showTickerForm());
+  document.getElementById("cancel-ticker-item")?.addEventListener("click", () => form.classList.add("hidden"));
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    const id = form.elements.id.value;
+    const payload = { headline: form.elements.headline.value.trim(), destinationUrl: form.elements.destinationUrl.value.trim(), priority: Number(form.elements.priority.value), isActive: form.elements.isActive.checked, startsAt: form.elements.startsAt.value ? new Date(form.elements.startsAt.value).toISOString() : null, expiresAt: form.elements.expiresAt.value ? new Date(form.elements.expiresAt.value).toISOString() : null };
+    try { await api(id ? `${tickerEndpoint}/${encodeURIComponent(id)}` : tickerEndpoint, { method: id ? "PUT" : "POST", body: JSON.stringify(payload) }); form.classList.add("hidden"); await loadTickerAdmin(); showToast(`Ticker headline ${id ? "updated" : "created"}.`); }
+    catch (error) { setMessage("#ticker-form-status", error.message || "Unable to save ticker headline.", "error"); }
+  });
+  document.getElementById("ticker-admin-list")?.addEventListener("click", async event => {
+    const edit = event.target.closest("[data-ticker-edit]");
+    const toggle = event.target.closest("[data-ticker-toggle]");
+    const remove = event.target.closest("[data-ticker-delete]");
+    const item = tickerItems.find(row => row.id === (edit?.dataset.tickerEdit || toggle?.dataset.tickerToggle || remove?.dataset.tickerDelete));
+    if (!item) return;
+    if (edit) return showTickerForm(item);
+    if (remove && !confirm("Delete this ticker headline?")) return;
+    try {
+      if (remove) await api(`${tickerEndpoint}/${encodeURIComponent(item.id)}`, { method: "DELETE" });
+      else await api(`${tickerEndpoint}/${encodeURIComponent(item.id)}`, { method: "PUT", body: JSON.stringify({ ...item, isActive: !item.isActive }) });
+      await loadTickerAdmin();
+    } catch (error) { showToast(error.message || "Unable to update ticker headline.", "error"); }
+  });
+  loadTickerAdmin();
+}
+
+function contentQuery(type) {
+  const params = new URLSearchParams();
+  const q = $(`#${type}-search`)?.value.trim();
+  if (q) params.set("q", q);
+  if (type === "news" && $("#news-status-filter")?.value) params.set("status", $("#news-status-filter").value);
+  if (type === "events" && $("#events-period-filter")?.value) params.set("period", $("#events-period-filter").value);
+  return params.toString();
+}
+
+function contentActions(type, row) {
+  if (!contentCan(type, true)) return "";
+  const publish = type === "news" ? `<button class="button secondary" data-content-publish="${row.isPublished ? "false" : "true"}" data-content-id="${escapeHTML(row.id)}">${row.isPublished ? "Unpublish" : "Publish"}</button>` : "";
+  return `<div class="content-row-actions"><button class="button secondary" data-content-edit="${escapeHTML(row.id)}" data-content-type="${type}" type="button">Edit</button>${publish}<button class="button danger" data-content-delete="${escapeHTML(row.id)}" data-content-type="${type}" type="button">Delete</button></div>`;
+}
+
+function renderContent(type) {
+  const host = document.getElementById(contentListIds[type]);
+  if (!host) return;
+  const rows = contentState[type];
+  if (!rows.length) { host.innerHTML = `<div class="empty-state">No ${type} found.</div>`; return; }
+  if (type === "gallery") {
+    host.innerHTML = rows.map(row => `<article class="content-gallery-card"><img src="${escapeHTML(row.imageUrl)}" alt="${escapeHTML(row.title || row.caption || "Gallery photo")}" loading="lazy"><div class="content-gallery-copy"><strong>${escapeHTML(row.title || "Untitled photo")}</strong><p>${escapeHTML(row.caption || "No caption")}</p>${contentActions(type, row)}</div></article>`).join("");
+    return;
+  }
+  host.innerHTML = rows.map(row => {
+    if (type === "news") return `<article class="content-row"><div><strong>${escapeHTML(row.title)}</strong><small>${row.isPublished ? "Published" : "Draft"} · ${formatDate(row.publishedAt || row.createdAt)}</small><small>${escapeHTML(row.slug)}</small></div>${contentActions(type, row)}</article>`;
+    if (type === "events") return `<article class="content-row"><div><strong>${escapeHTML(row.title)}</strong><small>${formatDateTime(row.startsAt)}${row.endsAt ? ` – ${formatDateTime(row.endsAt)}` : ""} · ${escapeHTML(row.location || "No location")}</small><small>${new Date(row.endsAt || row.startsAt) >= new Date() ? "Upcoming" : "Past"}</small></div>${contentActions(type, row)}</article>`;
+    return `<article class="content-row"><div><strong>${escapeHTML(row.name)}</strong><small>${escapeHTML(row.description || "No description")}</small><small>${escapeHTML(row.head || "No department head")}</small></div>${contentActions(type, row)}</article>`;
+  }).join("");
+}
+
+async function loadManagedContent(type) {
+  const host = document.getElementById(contentListIds[type]);
+  if (!contentCan(type)) { if (host) host.innerHTML = '<p class="empty-state">You do not have access to this section.</p>'; return; }
+  if (host) host.innerHTML = '<div class="list-loading">Loading...</div>';
+  try {
+    const query = contentQuery(type);
+    contentState[type] = await api(`${contentEndpoints[type]}${query ? `?${query}` : ""}`);
+    renderContent(type);
+  } catch (error) { if (host) host.innerHTML = `<p class="empty-state error">${escapeHTML(error.message || `Unable to load ${type}.`)}</p>`; }
+}
+
+function showContentForm(type, item = null) {
+  const form = document.getElementById(contentForms[type]);
+  const panel = document.getElementById(contentPanelIds[type]);
+  if (!form || !panel) return;
+  form.reset();
+  form.dataset.contentId = item?.id || "";
+  for (const [key, value] of Object.entries(item || {})) {
+    const field = form.elements.namedItem(key);
+    if (field && field.type !== "file" && field.type !== "checkbox") field.value = value == null ? "" : key === "startsAt" || key === "endsAt" ? new Date(value).toISOString().slice(0, 16) : String(value);
+  }
+  if (type === "news" && form.elements.isPublished) form.elements.isPublished.value = item?.isPublished ? "true" : "false";
+  if (type === "departments") form.elements.id.value = item?.id || "";
+  const preview = form.querySelector(".content-image-preview");
+  if (preview) { preview.hidden = !item?.imageUrl; preview.src = item?.imageUrl || ""; }
+  panel.classList.remove("hidden");
+  form.querySelector("input:not([type=hidden])")?.focus();
+}
+
+function contentPayload(form) {
+  const data = Object.fromEntries(new FormData(form));
+  delete data.image;
+  delete data.id;
+  if (form.id === "news-form") data.isPublished = data.isPublished === "true";
+  return data;
+}
+
+async function saveManagedContent(type, form) {
+  if (!contentCan(type, true)) throw new Error("You do not have permission to manage this section.");
+  const file = form.elements.image?.files?.[0];
+  const id = form.dataset.contentId || (type === "departments" ? form.elements.id?.value : "");
+  const payload = contentPayload(form);
+  if (type === "events") {
+    for (const field of ["startsAt", "endsAt"]) {
+      if (!payload[field]) { if (field === "endsAt") continue; throw new Error("Enter a valid event start date."); }
+      const parsed = new Date(payload[field]);
+      if (Number.isNaN(parsed.getTime())) throw new Error("Enter a valid event date.");
+      payload[field] = parsed.toISOString();
+    }
+  }
+  const body = file ? new FormData(form) : JSON.stringify(payload);
+  if (body instanceof FormData) { body.delete("id"); if (type === "news") body.set("isPublished", form.elements.isPublished.value === "true" ? "true" : "false"); }
+  if (body instanceof FormData && type === "events") {
+    body.set("startsAt", payload.startsAt);
+    if (payload.endsAt) body.set("endsAt", payload.endsAt); else body.delete("endsAt");
+  }
+  const endpoint = contentEndpoints[type] + (id ? `/${encodeURIComponent(id)}` : "");
+  setMessage(`#${form.id}-status`, id ? "Saving changes..." : "Creating... ");
+  await api(endpoint, { method: id ? "PUT" : "POST", body });
+  form.reset(); form.dataset.contentId = "";
+  const panel = form.closest(".panel"); panel?.classList.add("hidden");
+  await loadManagedContent(type);
+  showToast(`${contentLabels[type]} ${id ? "updated" : "created"}.`);
+}
+
+async function editManagedContent(type, id) {
+  if (!contentCan(type, true)) return showToast("You do not have permission to edit this content.", "error");
+  try { showContentForm(type, await api(`${contentEndpoints[type]}/${encodeURIComponent(id)}`)); }
+  catch (error) { showToast(error.message || "Unable to load content for editing.", "error"); }
+}
+
+function initializeContentManagement() {
+  initializeTickerManagement();
+  for (const type of Object.keys(contentEndpoints)) {
+    const section = document.getElementById(`section-${type}`);
+    const nav = document.querySelector(`[data-section="${type}"]`);
+    const permitted = contentCan(type);
+    if (section) section.hidden = !permitted;
+    if (nav) nav.hidden = !permitted;
+    const canManage = contentCan(type, true);
+    const newButton = document.getElementById({ news: "new-news-button", events: "new-event-button", departments: "new-department-button", gallery: "new-gallery-button" }[type]);
+    if (newButton) newButton.hidden = !canManage;
+    const form = document.getElementById(contentForms[type]);
+    if (form) form.addEventListener("submit", async event => {
+      event.preventDefault(); event.stopImmediatePropagation();
+      try { await saveManagedContent(type, form); setMessage(`#${form.id}-status`, `${contentLabels[type]} saved successfully.`, "success"); }
+      catch (error) { setMessage(`#${form.id}-status`, error.message || `Unable to save ${type}.`, "error"); showToast(error.message || `Unable to save ${type}.`, "error"); }
+    }, true);
+    const list = document.getElementById(contentListIds[type]);
+    list?.addEventListener("click", async event => {
+      const edit = event.target.closest("[data-content-edit]");
+      const publish = event.target.closest("[data-content-publish]");
+      const remove = event.target.closest("[data-content-delete]");
+      if (edit) return editManagedContent(type, edit.dataset.contentEdit);
+      if (publish) {
+        if (!confirm(`${publish.dataset.contentPublish === "true" ? "Publish" : "Unpublish"} this article?`)) return;
+        try { const item = await api(`${contentEndpoints.news}/${encodeURIComponent(publish.dataset.contentId)}`); const fd = new FormData(); for (const [key, value] of Object.entries(item)) if (!["id", "createdAt", "updatedAt", "publishedAt"].includes(key) && value != null) fd.set(key, String(value)); fd.set("isPublished", publish.dataset.contentPublish); await api(`${contentEndpoints.news}/${encodeURIComponent(item.id)}`, { method: "PUT", body: fd }); await loadManagedContent("news"); showToast(`Article ${publish.dataset.contentPublish === "true" ? "published" : "unpublished"}.`); }
+        catch (error) { showToast(error.message || "Unable to change publication status.", "error"); }
+      }
+      if (remove) {
+        if (!confirm(`Delete this ${contentLabels[type].toLowerCase()}? This cannot be undone.`)) return;
+        try { await api(`${contentEndpoints[type]}/${encodeURIComponent(remove.dataset.contentId)}`, { method: "DELETE" }); await loadManagedContent(type); showToast(`${contentLabels[type]} deleted.`); }
+        catch (error) { showToast(error.message || "Unable to delete content.", "error"); }
+      }
+    });
+    if (type !== "departments") document.getElementById({ news: "refresh-news", events: "refresh-events", gallery: "refresh-gallery" }[type])?.addEventListener("click", () => loadManagedContent(type));
+    const search = document.getElementById(`${type}-search`);
+    let timer;
+    search?.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(() => loadManagedContent(type), 250); });
+  }
+  $("#news-status-filter")?.addEventListener("change", () => loadManagedContent("news"));
+  $("#events-period-filter")?.addEventListener("change", () => loadManagedContent("events"));
+  document.querySelectorAll(".content-image-preview").forEach(preview => {
+    preview.closest("form")?.elements.image?.addEventListener("change", event => { const file = event.target.files?.[0]; if (!file) { preview.hidden = true; return; } if (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size > 4 * 1024 * 1024) { event.target.value = ""; preview.hidden = true; setMessage(`#${event.target.form.id}-status`, "Choose a JPG, PNG or WebP image smaller than 4 MB.", "error"); return; } preview.src = URL.createObjectURL(file); preview.hidden = false; });
+  });
+  $("#new-news-button")?.addEventListener("click", () => showContentForm("news"));
+  $("#new-event-button")?.addEventListener("click", () => showContentForm("events"));
+  $("#new-gallery-button")?.addEventListener("click", () => showContentForm("gallery"));
+  $("#new-department-button")?.addEventListener("click", () => showContentForm("departments"));
+  for (const [formId, type] of Object.entries({ "news-form": "news", "event-form": "events", "gallery-form": "gallery", "department-form": "departments" })) {
+    const form = document.getElementById(formId);
+    for (const button of form?.querySelectorAll("[id^=cancel-], [id^=close-]") || []) button.addEventListener("click", () => { form.closest(".panel")?.classList.add("hidden"); form.reset(); form.dataset.contentId = ""; });
+  }
+  for (const type of Object.keys(contentEndpoints)) if (contentCan(type)) loadManagedContent(type);
 }
 
 
@@ -4225,14 +4468,13 @@ async function loadOverviewStudents() {
     setHTML(
       "#overview-students",
 
-      students.length
+      (students.items || students).length
 
-        ? students
+        ? (students.items || students)
             .slice(0, 6)
             .map(student => {
 
-              const enrollment =
-                student.enrollments?.[0];
+              const enrollment = student.enrollments?.find(item => item.session?.isCurrent && item.status === "ENROLLED") || student.enrollments?.[0];
 
 
               return `
@@ -4298,6 +4540,8 @@ async function loadOverviewStudents() {
       "LOAD OVERVIEW STUDENTS ERROR:",
       error
     );
+    showRetryState("#overview-students", error.message || "Unable to load students.", "overviewStudents");
+    throw error;
 
   }
 }
@@ -4312,22 +4556,11 @@ $("#refresh-dashboard")
     "click",
     async () => {
 
-      await Promise.all([
-
-        loadOverview(),
-
-        loadOverviewStudents(),
-
-        loadAcademics(),
-
-        loadClasses()
-
-      ]);
-
-
-      showToast(
-        "Dashboard refreshed."
-      );
+      const jobs = [loadOverview()];
+      if (alumniCan("STUDENTS_VIEW")) jobs.push(loadOverviewStudents());
+      if (alumniCan("ACADEMICS_VIEW")) jobs.push(loadAcademics(), loadClasses());
+      try { await Promise.all(jobs); showToast("Dashboard refreshed."); }
+      catch (error) { showToast(`Refresh incomplete: ${error.message}`, "error"); }
 
     }
   );
@@ -4357,6 +4590,8 @@ $("#refresh-alumni")
 
       await loadAlumniYears();
 
+      await loadUpdateRequests();
+
       showToast(
         "Alumni data refreshed."
       );
@@ -4370,7 +4605,7 @@ $("#refresh-requests")
     "click",
     () => {
 
-      loadAlumni();
+      loadUpdateRequests();
 
     }
   );
@@ -4392,7 +4627,7 @@ $("#refresh-departments")
     "click",
     () => {
 
-      loadDepartments();
+      loadManagedContent("departments");
 
     }
   );
@@ -4775,6 +5010,8 @@ async function initializeAdmin() {
 
     await loadCurrentUser();
 
+    initializeContentManagement();
+
 
     await Promise.all([
 
@@ -4792,9 +5029,9 @@ async function initializeAdmin() {
 
       loadAlumniYears(),
 
-      loadMessages(),
+      loadUpdateRequests(),
 
-      loadDepartments(),
+      loadMessages(),
 
       loadPublicSettings(),
 

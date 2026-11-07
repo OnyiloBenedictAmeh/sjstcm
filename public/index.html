@@ -34,11 +34,16 @@
 
     <link rel="stylesheet" href="css/responsive.css" />
     <link rel="stylesheet" href="css/home-hero.css">
-    <link rel="stylesheet" href="css/home-hero.css">
 </head>
 
   <body>
-    <div class="home-news-strip"><span>Latest</span><a href="news.html">School news &amp; events</a></div>
+    <div class="home-news-strip breaking-news-ticker" id="breaking-news-ticker" role="region" aria-label="SJSTCM news ticker">
+      <span class="ticker-brand-label">SJSTCM News</span>
+      <div class="breaking-news-viewport" id="breaking-news-viewport" tabindex="0" aria-label="Breaking news and published articles">
+        <div class="breaking-news-track" id="breaking-news-track" aria-live="off"><span class="ticker-feed-status">Loading news...</span></div>
+      </div>
+    </div>
+    <span id="news-ticker-status" class="ticker-visually-hidden" role="status" aria-live="polite">Loading news headlines.</span>
 
 <header class="site-header">
 
@@ -92,25 +97,24 @@
     <main>
       <!-- HERO -->
 
-      <section class="home-hero-carousel" aria-label="Welcome to SJSTCM">
-  <div class="home-hero-slides" aria-live="polite">
-    <article class="home-hero-slide is-active" aria-roledescription="slide" aria-label="1 of 3">
+      <section class="home-hero-carousel" aria-label="Welcome to SJSTCM" aria-roledescription="carousel">
+  <div class="home-hero-slides" aria-live="off">
+    <article class="home-hero-slide is-active" id="home-hero-slide-1" role="group" aria-roledescription="slide" aria-label="1 of 3">
       <img class="home-hero-image" src="assets/images/hero-technical-workshop.jpg" alt="A student working on an electronics project in a technical workshop">
       <div class="home-hero-copy"><span class="eyebrow">EXCELLENCE · CHARACTER · FUTURE</span><h1>Welcome to St. Joseph's Science and Technical College.</h1><p>Explore our academic programmes, school updates, events, community resources and student services.</p><div class="actions"><a class="button" href="about.html">Discover Our School</a><a class="button secondary" href="admissions.html">Admissions</a><a class="button secondary" href="student/login.html">Student Portal</a></div></div>
     </article>
-    <article class="home-hero-slide" aria-roledescription="slide" aria-label="2 of 3" hidden>
-      <img class="home-hero-image" src="assets/images/hero-technical-class.jpg" alt="Students learning coding and software development in Accra, Ghana">
+    <article class="home-hero-slide" id="home-hero-slide-2" role="group" aria-roledescription="slide" aria-label="2 of 3" hidden>
+      <img class="home-hero-image" src="assets/images/hero-technical-class.jpg" alt="Students learning in an information technology class">
       <div class="home-hero-copy"><span class="eyebrow">LEARNING</span><h2>Academics and technical departments.</h2><p>Explore the school's learning programme and department directory.</p><div class="actions"><a class="button" href="academics.html">Explore Academics</a><a class="button secondary" href="departments.html">View Departments</a></div></div>
     </article>
-    <article class="home-hero-slide" aria-roledescription="slide" aria-label="3 of 3" hidden>
+    <article class="home-hero-slide" id="home-hero-slide-3" role="group" aria-roledescription="slide" aria-label="3 of 3" hidden>
       <img class="home-hero-image" src="assets/images/hero-school-community.jpg" alt="African students in uniform standing outside a school building">
       <div class="home-hero-copy"><span class="eyebrow">OUR COMMUNITY</span><h2>Life at our school.</h2><p>See school life, read the latest updates and stay connected with our community.</p><div class="actions"><a class="button" href="gallery.html">View Gallery</a><a class="button secondary" href="news.html">News &amp; Events</a></div></div>
     </article>
   </div>
   <div class="home-hero-toolbar">
-    <div class="home-hero-dots" role="group" aria-label="Choose a homepage feature"><button class="is-active" type="button" aria-pressed="true" aria-label="Show welcome feature"></button><button type="button" aria-pressed="false" aria-label="Show academics feature"></button><button type="button" aria-pressed="false" aria-label="Show community feature"></button></div>
-    <span class="home-hero-count" aria-live="polite">01 / 03</span>
-    <div class="home-hero-controls"><button type="button" data-hero-action="pause" aria-label="Pause slideshow"><i class="bx bx-pause" aria-hidden="true"></i></button><button type="button" data-hero-action="previous" aria-label="Previous feature"><i class="bx bx-chevron-left" aria-hidden="true"></i></button><button type="button" data-hero-action="next" aria-label="Next feature"><i class="bx bx-chevron-right" aria-hidden="true"></i></button></div>
+    <div class="home-hero-dots" role="group" aria-label="Choose a homepage feature"><button class="is-active" type="button" aria-pressed="true" aria-controls="home-hero-slide-1" aria-label="Show welcome feature"></button><button type="button" aria-pressed="false" aria-controls="home-hero-slide-2" aria-label="Show academics feature"></button><button type="button" aria-pressed="false" aria-controls="home-hero-slide-3" aria-label="Show community feature"></button></div>
+    <div class="home-hero-controls"><button type="button" data-hero-action="pause" aria-label="Pause slideshow"><i class="bx bx-pause" aria-hidden="true"></i></button></div>
     <div class="home-hero-highlights"><span>Science &amp; technology</span><span>Learning with purpose</span></div>
   </div>
 </section>
@@ -307,7 +311,6 @@
     <script src="js/social-links.js"></script>
 
     <script src="js/main.js"></script>
-    <script src="js/home-hero.js"></script>
     <script src="js/home-hero.js"></script>
   </body>
 </html>
