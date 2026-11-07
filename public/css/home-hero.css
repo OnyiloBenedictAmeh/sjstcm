@@ -33,7 +33,6 @@
 .breaking-news-item a { display: inline-block; color: #fff; font-size: .9rem; font-weight: 650; letter-spacing: .01em; }
 .home-news-strip .breaking-news-badge { padding: 3px 6px; border-radius: 3px; background: #d62828; color: #fff; font-size: .62rem; font-weight: 850; letter-spacing: .04em; text-transform: uppercase; }
 .ticker-feed-status { display: inline-block; padding-right: 30px; }
-.ticker-visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .breaking-news-ticker.is-paused .breaking-news-track { animation-play-state: paused; }
 @keyframes breaking-news-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 @media (prefers-reduced-motion: reduce) { .breaking-news-track { animation: none !important; } }
