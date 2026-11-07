@@ -223,6 +223,12 @@
             </article>
           </div>
 
+          <div class="main-overview-grid">
+            <article class="panel"><div class="panel-header"><div><span class="panel-kicker">LEARNING</span><h3>Academic sessions</h3></div></div><div id="overview-sessions"><div class="list-loading">Loading sessions...</div></div></article>
+            <article class="panel"><div class="panel-header"><div><span class="panel-kicker">SCHOOL STRUCTURE</span><h3>Classes</h3></div></div><div id="overview-classes"><div class="list-loading">Loading classes...</div></div></article>
+            <article class="panel"><div class="panel-header"><div><span class="panel-kicker">STUDENT DIRECTORY</span><h3>Students</h3></div></div><div id="overview-students"><div class="list-loading">Loading students...</div></div></article>
+          </div>
+
           <article class="panel permitted-areas-panel" id="permitted-areas">
             <div class="panel-header">
               <div>
@@ -365,7 +371,7 @@
           </div>
 
           <article class="panel">
-            <div class="toolbar">
+            <div class="toolbar student-toolbar">
               <div class="search-box">
                 <span>⌕</span>
 
@@ -384,6 +390,13 @@
                 ↻ Refresh
               </button>
             </div>
+            <div class="student-filters">
+              <select id="student-status-filter" aria-label="Filter by student status"><option value="">All student statuses</option><option value="ACTIVE">Active</option><option value="GRADUATED">Graduated</option><option value="ALUMNI">Alumni</option><option value="INACTIVE">Inactive</option></select>
+              <select id="student-class-filter" aria-label="Filter by class"><option value="">All classes</option></select>
+              <select id="student-session-filter" aria-label="Filter by session"><option value="">All sessions</option></select>
+              <select id="student-enrollment-filter" aria-label="Filter by enrollment status"><option value="">All enrollment statuses</option><option value="ENROLLED">Enrolled</option><option value="PROMOTED">Promoted</option><option value="COMPLETED">Completed</option><option value="WITHDRAWN">Withdrawn</option></select>
+            </div>
+            <p id="student-count" class="muted" aria-live="polite"></p>
 
             <div class="table-wrap">
               <table class="data-table">
@@ -410,6 +423,7 @@
                 </tbody>
               </table>
             </div>
+            <div id="student-pagination" class="pagination-controls" aria-label="Student list pages"></div>
           </article>
         </section>
 
@@ -453,6 +467,8 @@
                 class="admin-search"
                 placeholder="Search classes..."
               />
+              <button class="button secondary" id="refresh-classes" type="button">Refresh classes</button>
+              <select id="class-session-filter" aria-label="Count enrollments by session"><option value="">Current session</option></select>
             </div>
 
             <div id="classes-grid" class="classes-grid">
@@ -503,11 +519,25 @@
 
                 <p class="muted">Manage the school's academic sessions.</p>
               </div>
+              <div id="session-management-tools" class="toolbar-actions">
+                <button class="button secondary" id="refresh-sessions" type="button">Refresh</button>
+                <button class="button" id="new-session-button" type="button">+ New Session</button>
+              </div>
             </div>
 
             <div id="sessions-list">
               <div class="empty">Loading sessions...</div>
             </div>
+            <article class="panel hidden" id="session-form-panel">
+              <div class="panel-header"><div><span class="panel-kicker">SESSION</span><h3 id="session-form-title">Create academic session</h3></div><button class="icon-button" id="close-session-form" type="button" aria-label="Close session form">×</button></div>
+              <form id="session-form" class="admin-form">
+                <input type="hidden" name="id">
+                <div class="form-grid"><label><span>Session name</span><input name="name" maxlength="80" placeholder="2026/2027" required></label><label class="check-row"><input type="checkbox" name="isCurrent"><span>Set as current session</span></label></div>
+                <div class="form-grid"><label><span>Starts</span><input name="startDate" type="date"></label><label><span>Ends</span><input name="endDate" type="date"></label></div>
+                <div class="form-actions"><button class="button secondary" type="button" id="cancel-session">Cancel</button><button class="button" type="submit">Save session</button></div>
+                <p id="session-form-status" class="form-status" role="status"></p>
+              </form>
+            </article>
           </div>
         </section>
 
@@ -522,11 +552,9 @@
 
               <h2>Alumni</h2>
 
-              <p>
-                Browse publicly listed alumni profiles and filter them by
-                graduation year.
-              </p>
+              <p>Review registrations, maintain alumni records, verify school history and manage class sets.</p>
             </div>
+            <button class="button" id="create-alumni" type="button">Add alumni record</button>
           </div>
 
           <article class="panel">
@@ -549,6 +577,13 @@
                 <option value="">All graduation years</option>
               </select>
 
+              <select id="alumni-status-filter" class="select-control" aria-label="Filter by verification status">
+                <option value="">All verification statuses</option>
+                <option value="PENDING">Pending</option><option value="VERIFIED">Verified</option>
+                <option value="REJECTED">Rejected</option><option value="NEEDS_INFORMATION">Needs information</option>
+              </select>
+              <select id="alumni-class-filter" class="select-control" aria-label="Filter by class set"><option value="">All class sets</option></select>
+
               <button
                 class="button secondary"
                 id="refresh-alumni"
@@ -558,9 +593,13 @@
               </button>
             </div>
 
-            <div id="alumni-list" class="people-grid">
+            <div id="alumni-list" class="alumni-admin-list">
               <div class="list-loading">Loading alumni...</div>
             </div>
+          </article>
+          <article class="panel alumni-class-manager">
+            <div class="section-intro"><div><h3>Class sets</h3><p>Create and maintain alumni groups independently of exit-year filters.</p></div><button class="button secondary" id="create-class-set" type="button">Add class set</button></div>
+            <div id="alumni-class-sets" class="alumni-class-set-list"><div class="list-loading">Loading class sets...</div></div>
           </article>
         </section>
 
@@ -593,14 +632,6 @@
             </div>
           </article>
 
-          <div class="info-banner">
-            <strong> Approval workflow </strong>
-
-            <p>
-              The current backend provides retrieval of update requests, but it
-              does not yet expose an approve/reject endpoint.
-            </p>
-          </div>
         </section>
 
         <!-- =====================================================
@@ -674,6 +705,7 @@
 
                   <input name="imageUrl" type="url" placeholder="https://..." />
                 </label>
+                <label><span>Upload image (JPG, PNG or WebP, max 4 MB)</span><input name="image" type="file" accept="image/jpeg,image/png,image/webp" /><img class="content-image-preview" alt="News image preview" hidden></label>
 
                 <label>
                   <span> Published </span>
@@ -710,10 +742,24 @@
                 ↻
               </button>
             </div>
+            <div class="content-toolbar"><input id="news-search" type="search" placeholder="Search news" aria-label="Search news"><select id="news-status-filter" aria-label="Filter news by status"><option value="">All articles</option><option value="published">Published</option><option value="draft">Drafts</option></select></div>
 
             <div id="news-list" class="content-list">
               <div class="list-loading">Loading news...</div>
             </div>
+          </article>
+          <article class="panel ticker-admin-panel" id="ticker-admin-panel">
+            <div class="panel-header"><div><span class="panel-kicker">HOMEPAGE ALERTS</span><h3>Breaking news ticker</h3><p class="muted">Manage headlines shown in the public site ticker.</p></div><button class="button secondary" id="new-ticker-item" type="button">+ Add headline</button></div>
+            <form id="ticker-form" class="admin-form hidden">
+              <input type="hidden" name="id">
+              <label><span>Headline</span><input name="headline" maxlength="240" required></label>
+              <div class="form-grid"><label><span>Destination URL (optional)</span><input name="destinationUrl" type="text" maxlength="2048" placeholder="https://... or /news.html?article=..."></label><label><span>Priority (higher appears first)</span><input name="priority" type="number" min="0" max="100000" step="1" value="0" required></label></div>
+              <div class="form-grid"><label><span>Starts at (optional)</span><input name="startsAt" type="datetime-local"></label><label><span>Expires at (optional)</span><input name="expiresAt" type="datetime-local"></label></div>
+              <label class="check-row"><input name="isActive" type="checkbox" checked><span>Active</span></label>
+              <div class="form-actions"><button class="button secondary" id="cancel-ticker-item" type="button">Cancel</button><button class="button" type="submit">Save headline</button></div>
+              <p id="ticker-form-status" class="form-status" role="status"></p>
+            </form>
+            <div id="ticker-admin-list" class="content-list"><div class="list-loading">Loading ticker headlines...</div></div>
           </article>
         </section>
 
@@ -793,6 +839,7 @@
 
                 <input name="imageUrl" type="url" />
               </label>
+              <label><span>Upload image (JPG, PNG or WebP, max 4 MB)</span><input name="image" type="file" accept="image/jpeg,image/png,image/webp" /><img class="content-image-preview" alt="Event image preview" hidden></label>
 
               <div class="form-actions">
                 <button
@@ -822,6 +869,7 @@
                 ↻
               </button>
             </div>
+            <div class="content-toolbar"><input id="events-search" type="search" placeholder="Search events" aria-label="Search events"><select id="events-period-filter" aria-label="Filter events by date"><option value="">All events</option><option value="upcoming">Upcoming</option><option value="past">Past</option></select></div>
 
             <div id="events-list" class="content-list">
               <div class="list-loading">Loading events...</div>
@@ -868,7 +916,7 @@
                 <label>
                   <span> Image URL </span>
 
-                  <input name="imageUrl" type="url" required />
+                  <input name="imageUrl" type="url" />
                 </label>
 
                 <label>
@@ -877,6 +925,7 @@
                   <input name="title" />
                 </label>
               </div>
+              <label><span>Upload image (JPG, PNG or WebP, max 4 MB)</span><input name="image" type="file" accept="image/jpeg,image/png,image/webp" /><img class="content-image-preview" alt="Gallery image preview" hidden></label>
 
               <label>
                 <span> Caption </span>
@@ -912,6 +961,7 @@
                 ↻
               </button>
             </div>
+            <div class="content-toolbar"><input id="gallery-search" type="search" placeholder="Search gallery" aria-label="Search gallery"></div>
 
             <div id="gallery-list" class="admin-gallery">
               <div class="list-loading">Loading gallery...</div>
@@ -948,6 +998,7 @@
             </div>
 
             <form id="department-form" class="admin-form" method="post" action="api/admin/departments">
+              <input type="hidden" name="id">
               <div class="form-grid">
                 <label>
                   <span>Department name</span>
@@ -986,6 +1037,7 @@
                 ↻
               </button>
             </div>
+            <div class="content-toolbar"><input id="departments-search" type="search" placeholder="Search departments" aria-label="Search departments"></div>
 
             <div id="departments-list" class="department-grid">
               <div class="list-loading">Loading departments...</div>
@@ -1141,6 +1193,10 @@
           <p class="form-status" id="student-form-status"></p>
         </form>
       </div>
+    </div>
+
+    <div class="modal-backdrop hidden" id="student-profile-admin-modal">
+      <div class="modal student-history-modal"><div class="modal-header"><div><span class="panel-kicker">STUDENT RECORD</span><h2 id="student-profile-admin-title">Student profile</h2></div><button class="icon-button" id="close-student-profile-admin" type="button" aria-label="Close profile">×</button></div><div id="student-profile-admin-content"></div></div>
     </div>
 
     <!-- =========================================================
@@ -1394,6 +1450,19 @@
 
           <p id="class-form-status" class="form-status"></p>
         </form>
+      </div>
+    </div>
+
+    <div class="modal-backdrop hidden" id="alumni-modal">
+      <div class="modal alumni-modal">
+        <div class="modal-header"><div><span class="panel-kicker">ALUMNI RECORD</span><h2 id="alumni-modal-title">Alumni details</h2></div><button class="icon-button" type="button" data-close-alumni aria-label="Close">×</button></div>
+        <div id="alumni-detail-content"></div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop hidden" id="class-set-modal">
+      <div class="modal"><div class="modal-header"><div><span class="panel-kicker">ALUMNI CLASS SET</span><h2 id="class-set-modal-title">Add class set</h2></div><button class="icon-button" type="button" data-close-class-set aria-label="Close">×</button></div>
+        <form id="class-set-form" class="admin-form"><input type="hidden" name="id"><label><span>Display name</span><input name="displayName" maxlength="120" required></label><div class="form-grid"><label><span>Entry year</span><input name="entryYear" type="number" min="1900"></label><label><span>Exit year</span><input name="exitYear" type="number" min="1900"></label></div><label><span>Approximate period</span><input name="approximatePeriod" maxlength="120"></label><label><span>Notes</span><textarea name="notes" rows="3"></textarea></label><label class="check-row"><input type="checkbox" name="isPublic"><span>Show this class set publicly</span></label><div class="form-actions"><button type="button" class="button secondary" data-close-class-set>Cancel</button><button class="button" type="submit">Save class set</button></div><p id="class-set-form-status" class="form-status" role="status"></p></form>
       </div>
     </div>
 

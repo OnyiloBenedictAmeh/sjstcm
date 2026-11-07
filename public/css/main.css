@@ -65,6 +65,12 @@ body:not(.admin-body) > * {
   z-index: 1;
 }
 
+/* Keep the sticky header above every top-level page section and its overlays. */
+body:not(.admin-body) > .site-header {
+  z-index: 1200;
+  isolation: isolate;
+}
+
 img {
   max-width: 100%;
   display: block;
@@ -357,6 +363,30 @@ select:focus-visible {
   padding: 9px 14px;
   font-size: 0.88rem;
 }
+
+.back-to-top {
+  position: fixed;
+  right: clamp(16px, 3vw, 32px);
+  bottom: clamp(16px, 3vw, 32px);
+  z-index: 1100;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(8, 43, 89, 0.22);
+  font-size: 1.75rem;
+  line-height: 1;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.back-to-top[hidden] { display: none; }
+.back-to-top:hover { background: var(--accent); transform: translateY(-2px); }
+.back-to-top:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
 
 
 /* =========================================================

@@ -2119,6 +2119,37 @@
 .class-cover-info,
 .class-students { padding: clamp(16px, 2.5vw, 28px); }
 .class-students { border-top: 1px solid #e8edf3; }
+.alumni-admin-list,
+.alumni-class-set-list { margin-top: 12px; }
+.admin-section[hidden] { display: none !important; }
+.alumni-admin-list .admin-table-wrap,
+.alumni-class-set-list .admin-table-wrap { overflow-x: auto; }
+.alumni-admin-list .admin-table,
+.alumni-class-set-list .admin-table { min-width: 820px; }
+.alumni-admin-list td small,
+.alumni-class-set-list td small { display: block; color: var(--muted); }
+.alumni-detail-section { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+.alumni-detail-section h3 { margin: 0 0 10px; }
+.alumni-detail-section li { margin: 8px 0; }
+.alumni-modal { width: min(100%, 900px); max-height: 90dvh; overflow: auto; }
+.alumni-modal .admin-form { padding: 0 22px 22px; }
+.alumni-modal fieldset { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 14px; border: 1px solid var(--line); border-radius: 12px; }
+.alumni-modal fieldset legend { padding: 0 7px; font-weight: 700; }
+.alumni-modal .check-row { margin: 5px 0; }
+.student-match { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px; border-bottom: 1px solid var(--line); }
+.student-match small { display: block; color: var(--muted); }
+.student-search-results { margin-top: 10px; }
+.text-button { border: 0; color: var(--accent); background: transparent; cursor: pointer; text-decoration: underline; }
+.alumni-class-manager { margin-top: 20px; }
+.alumni-modal .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 700px) {
+  .alumni-modal .admin-form { padding: 0 15px 18px; }
+  .alumni-modal .form-grid,
+  .alumni-modal fieldset { grid-template-columns: 1fr; }
+  .alumni-admin-list .admin-table,
+  .alumni-class-set-list .admin-table { min-width: 700px; }
+  .student-match { align-items: flex-start; flex-direction: column; }
+}
 .empty,
 .list-loading,
 .table-state,
@@ -2128,3 +2159,29 @@
 .toast { opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity .18s ease, transform .18s ease; }
 .toast.show { opacity: 1; transform: translateY(0); }
 .toast.error { background: var(--admin-danger); }
+
+/* Content management lists and upload previews */
+.content-toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+.content-toolbar input[type="search"] { flex: 1 1 220px; min-width: min(100%, 220px); }
+.content-toolbar select { min-width: 150px; }
+.content-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 15px 18px; border-bottom: 1px solid var(--line); }
+.content-row:last-child { border-bottom: 0; }
+.content-row > div:first-child { min-width: 0; }
+.content-row small { display: block; margin-top: 4px; color: var(--muted); overflow-wrap: anywhere; }
+.content-row-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
+.content-row-actions .button { padding: 8px 12px; }
+.content-image-preview { display: block; max-width: min(100%, 360px); max-height: 210px; margin-top: 10px; object-fit: contain; border: 1px solid var(--line); border-radius: 10px; background: #f7f9fc; }
+.content-gallery-card { overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+.content-gallery-card > img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: #f2f5f9; }
+.content-gallery-copy { padding: 13px; }
+.content-gallery-copy p { min-height: 1.5em; color: var(--muted); }
+.content-gallery-copy .content-row-actions { justify-content: flex-start; }
+.ticker-admin-panel { margin-top: 20px; }
+.ticker-admin-panel .admin-form { margin: 16px 0 22px; padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: #fbfcfe; }
+.ticker-admin-panel .panel-header p { margin: 6px 0 0; }
+.ticker-admin-panel[hidden] { display: none !important; }
+@media (max-width: 650px) {
+  .content-row { align-items: stretch; flex-direction: column; }
+  .content-row-actions { justify-content: flex-start; }
+  .content-toolbar > * { width: 100%; }
+}
