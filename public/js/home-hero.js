@@ -5,7 +5,6 @@
   const ticker = document.querySelector("#breaking-news-ticker");
   const tickerTrack = document.querySelector("#breaking-news-track");
   const tickerViewport = document.querySelector("#breaking-news-viewport");
-  const tickerStatus = document.querySelector("#news-ticker-status");
   const apiBase = window.location.hostname === "onyilobenedictameh.github.io"
     ? "https://sjstcm.vercel.app"
     : window.location.origin;
@@ -100,7 +99,6 @@
         tickerTrack.append(...duplicate.childNodes);
         ticker.classList.add("has-items");
         ticker.hidden = false;
-        if (tickerStatus) tickerStatus.textContent = `Loaded ${items.length} current news headlines.`;
         return;
       }
 
@@ -110,10 +108,8 @@
         message.classList.add("ticker-feed-error");
         tickerTrack.append(message);
         ticker.hidden = false;
-        if (tickerStatus) tickerStatus.textContent = "News is temporarily unavailable.";
       } else {
         ticker.hidden = true;
-        if (tickerStatus) tickerStatus.textContent = "There are no current news headlines.";
       }
     });
   }
