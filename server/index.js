@@ -724,12 +724,19 @@ app.post(
   "/api/auth/login",
   async (req, res) => {
 
+    let loginStage = "request validation";
+    const sensitiveLoginValues = [];
+
     try {
 
       const {
         email,
         password
       } = req.body;
+
+      if (typeof password === "string" && password) {
+        sensitiveLoginValues.push(password);
+      }
 
 
       if (!email || !password) {
@@ -742,6 +749,7 @@ app.post(
       }
 
 
+      loginStage = "database lookup";
       const user =
         await prisma.user.findUnique({
 
@@ -752,14 +760,21 @@ app.post(
 
         });
 
+      if (typeof user?.passwordHash === "string" && user.passwordHash) {
+        sensitiveLoginValues.push(user.passwordHash);
+      }
 
-      if (
-        !user ||
-        !(await bcrypt.compare(
+
+      let passwordMatches = false;
+      if (user) {
+        loginStage = "bcrypt comparison";
+        passwordMatches = await bcrypt.compare(
           password,
           user.passwordHash
-        ))
-      ) {
+        );
+      }
+
+      if (!user || !passwordMatches) {
 
         return res.status(401).json({
           error:
@@ -769,6 +784,7 @@ app.post(
       }
 
       if (user.role === "STUDENT") {
+        loginStage = "student lookup";
         const student = await prisma.student.findUnique({
           where: { userId: user.id },
           select: { id: true, status: true }
@@ -782,9 +798,14 @@ app.post(
       }
 
 
+      loginStage = "JWT signing";
+      const token = sign(user);
+      sensitiveLoginValues.push(token);
+
+      loginStage = "cookie/response";
       res.cookie(
         "school_token",
-        sign(user),
+        token,
         {
 
           httpOnly: true,
@@ -815,10 +836,30 @@ app.post(
 
     } catch (error) {
 
-      console.error(
-        "LOGIN ERROR:",
-        error
-      );
+      let safeMessage = typeof error?.message === "string"
+        ? error.message.replace(/[\r\n\t]+/g, " ").slice(0, 300)
+        : "Unknown error";
+      const valuesToRedact = [
+        ...Object.values(process.env),
+        ...sensitiveLoginValues
+      ].filter(value => typeof value === "string" && value.length > 0)
+        .sort((a, b) => b.length - a.length);
+      for (const value of valuesToRedact) {
+        safeMessage = safeMessage.split(value).join("[redacted]");
+      }
+
+      const sanitizedError = {
+        stage: loginStage,
+        name: typeof error?.name === "string" && /^[A-Za-z0-9_.-]{1,64}$/.test(error.name)
+          ? error.name
+          : "Error",
+        code: (typeof error?.code === "string" && /^[A-Za-z0-9_.-]{1,64}$/.test(error.code)) || typeof error?.code === "number"
+          ? error.code
+          : undefined,
+        message: safeMessage
+      };
+
+      console.error("LOGIN ERROR:", sanitizedError);
 
       res.status(500).json({
         error: "Unable to log in."
