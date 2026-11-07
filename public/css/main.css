@@ -364,10 +364,10 @@ select:focus-visible {
   font-size: 0.88rem;
 }
 
-.back-to-top {
+body:not(.admin-body) > .back-to-top {
   position: fixed;
-  right: clamp(16px, 3vw, 32px);
-  bottom: clamp(16px, 3vw, 32px);
+  right: max(16px, calc(env(safe-area-inset-right, 0px) + 12px));
+  bottom: max(16px, calc(env(safe-area-inset-bottom, 0px) + 12px));
   z-index: 1100;
   width: 48px;
   height: 48px;

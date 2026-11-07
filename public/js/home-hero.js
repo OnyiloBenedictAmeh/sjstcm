@@ -5,31 +5,21 @@
   const ticker = document.querySelector("#breaking-news-ticker");
   const tickerTrack = document.querySelector("#breaking-news-track");
   const tickerViewport = document.querySelector("#breaking-news-viewport");
-  const tickerToggle = document.querySelector("#breaking-news-toggle");
   const tickerStatus = document.querySelector("#news-ticker-status");
   const apiBase = window.location.hostname === "onyilobenedictameh.github.io"
     ? "https://sjstcm.vercel.app"
     : window.location.origin;
 
-  if (ticker && tickerTrack && tickerViewport && tickerToggle) {
-    let tickerUserPaused = false;
+  if (ticker && tickerTrack && tickerViewport) {
     let tickerHovered = false;
     let tickerFocused = false;
     let tickerReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const setTickerPaused = paused => {
-      tickerUserPaused = paused;
-      syncTickerPause();
-    };
     const syncTickerPause = () => {
-      const paused = tickerUserPaused || tickerHovered || tickerFocused || tickerReducedMotion;
+      const paused = tickerHovered || tickerFocused || tickerReducedMotion;
       ticker.classList.toggle("is-paused", paused);
-      tickerToggle.setAttribute("aria-pressed", String(tickerUserPaused));
-      tickerToggle.setAttribute("aria-label", tickerUserPaused ? "Resume breaking news ticker" : "Pause breaking news ticker");
-      tickerToggle.querySelector("span").textContent = tickerUserPaused ? "▶" : "Ⅱ";
     };
     syncTickerPause();
-    tickerToggle.addEventListener("click", () => setTickerPaused(!tickerUserPaused));
     ticker.addEventListener("mouseenter", () => { tickerHovered = true; syncTickerPause(); });
     ticker.addEventListener("mouseleave", () => { tickerHovered = false; syncTickerPause(); });
     ticker.addEventListener("focusin", () => { tickerFocused = true; syncTickerPause(); });
@@ -132,7 +122,6 @@
 
   const slides = [...carousel.querySelectorAll(".home-hero-slide")];
   const dots = [...carousel.querySelectorAll(".home-hero-dots button")];
-  const count = carousel.querySelector(".home-hero-count");
   const pauseButton = carousel.querySelector('[data-hero-action="pause"]');
   if (slides.length < 2 || dots.length !== slides.length) return;
 
@@ -161,7 +150,6 @@
       dot.setAttribute("aria-pressed", String(current));
     });
     slides[active].setAttribute("aria-label", `${active + 1} of ${slides.length}`);
-    if (count) count.textContent = `${String(active + 1).padStart(2, "0")} / ${String(slides.length).padStart(2, "0")}`;
   }
 
   function schedule() {
@@ -175,8 +163,6 @@
   }
 
   dots.forEach((dot, index) => dot.addEventListener("click", () => { show(index); schedule(); }));
-  carousel.querySelector('[data-hero-action="previous"]')?.addEventListener("click", () => { show(active - 1); schedule(); });
-  carousel.querySelector('[data-hero-action="next"]')?.addEventListener("click", () => { show(active + 1); schedule(); });
   pauseButton?.addEventListener("click", () => { userPaused = !userPaused; schedule(); });
   carousel.addEventListener("mouseenter", () => { hovered = true; schedule(); });
   carousel.addEventListener("mouseleave", () => { hovered = false; schedule(); });
@@ -189,6 +175,44 @@
     if (event.key === "ArrowLeft") { event.preventDefault(); show(active - 1); schedule(); }
     if (event.key === "ArrowRight") { event.preventDefault(); show(active + 1); schedule(); }
   });
+
+  let gesture = null;
+  let suppressClick = false;
+  carousel.addEventListener("pointerdown", event => {
+    if (!event.isPrimary || (event.pointerType === "mouse" && event.button !== 0) || event.target.closest("a, button, .home-hero-toolbar")) return;
+    gesture = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, dx: 0, dy: 0, horizontal: false };
+    try { carousel.setPointerCapture(event.pointerId); } catch { /* Pointer capture is optional. */ }
+  });
+  carousel.addEventListener("pointermove", event => {
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    gesture.dx = event.clientX - gesture.x;
+    gesture.dy = event.clientY - gesture.y;
+    if (Math.abs(gesture.dx) > 12 && Math.abs(gesture.dx) > Math.abs(gesture.dy)) {
+      gesture.horizontal = true;
+      carousel.classList.add("is-dragging");
+      event.preventDefault();
+    }
+  }, { passive: false });
+  const finishGesture = event => {
+    if (!gesture || (event && gesture.pointerId !== event.pointerId)) return;
+    const completed = gesture;
+    gesture = null;
+    carousel.classList.remove("is-dragging");
+    if (!completed.horizontal || Math.abs(completed.dx) < 48) return;
+    if (event?.cancelable) event.preventDefault();
+    show(active + (completed.dx < 0 ? 1 : -1));
+    schedule();
+    suppressClick = true;
+    window.setTimeout(() => { suppressClick = false; }, 350);
+  };
+  carousel.addEventListener("pointerup", finishGesture);
+  carousel.addEventListener("pointercancel", finishGesture);
+  carousel.addEventListener("click", event => {
+    if (!suppressClick) return;
+    event.preventDefault();
+    event.stopPropagation();
+    suppressClick = false;
+  }, true);
 
   show(active);
   schedule();
