@@ -4980,6 +4980,22 @@ let staffItems = [];
 let staffOptions = { departments: [], accounts: [] };
 const staffCanView = () => alumniCan("STAFF_VIEW") || alumniCan("STAFF_MANAGE");
 const staffCanManage = () => alumniCan("STAFF_MANAGE");
+let staffCreateAttempt = null;
+
+function createStaffCreateAttempt() {
+  let storage = null;
+  try { storage = sessionStorage; } catch { /* The attempt remains available in memory. */ }
+  return window.StaffCreateAttempt.create({
+    storage,
+    actorId: currentUser?.id,
+    createKey: () => crypto.randomUUID()
+  });
+}
+
+function getStaffCreateAttempt() {
+  if (!staffCreateAttempt) staffCreateAttempt = createStaffCreateAttempt();
+  return staffCreateAttempt;
+}
 
 async function loadStaffOptions() {
   staffOptions = await api(`${staffEndpoint}/options`);
@@ -5079,6 +5095,12 @@ function showStaffForm(profile = null) {
   form.elements.biography.value = profile?.biography || "";
   form.elements.memories.value = profile?.memories || "";
   form.elements.isPublic.checked = profile?.isPublic === true;
+  form.elements.publicName.checked = profile?.publicName === true;
+  form.elements.publicServiceHistory.checked = profile?.publicServiceHistory === true;
+  form.elements.publicBiography.checked = profile?.publicBiography === true;
+  if (!profile) {
+    getStaffCreateAttempt().begin();
+  }
   const accountSelect = form.elements.userId;
   accountSelect.innerHTML = '<option value="">No account linked</option>' + staffOptions.accounts.map(account => `<option value="${escapeHTML(account.id)}" ${account.linked && account.id !== profile?.user?.id ? "disabled" : ""}>${escapeHTML(account.email)}${account.linked && account.id !== profile?.user?.id ? " · linked to another profile" : ""}</option>`).join("");
   if (profile?.user && !staffOptions.accounts.some(account => account.id === profile.user.id)) accountSelect.insertAdjacentHTML("beforeend", `<option value="${escapeHTML(profile.user.id)}">${escapeHTML(profile.user.email)} · linked</option>`);
@@ -5089,6 +5111,8 @@ function showStaffForm(profile = null) {
   const canManage = staffCanManage();
   for (const element of form.querySelectorAll("input, select, textarea")) element.disabled = !canManage;
   for (const button of form.querySelectorAll("button")) button.hidden = !canManage;
+  const abandonButton = $("#abandon-staff-create");
+  if (abandonButton) abandonButton.hidden = !canManage || Boolean(profile);
   $("#staff-form-title").textContent = profile ? (canManage ? "Edit staff profile" : "Staff profile details") : "Add staff profile";
   $("#staff-form-kicker").textContent = profile?.formerStaffId || "STAFF PROFILE";
   panel.classList.remove("hidden");
@@ -5112,6 +5136,13 @@ function initializeStaffManagement() {
   $("#add-staff-button")?.addEventListener("click", () => showStaffForm());
   $("#close-staff-form")?.addEventListener("click", () => $("#staff-form-panel").classList.add("hidden"));
   $("#cancel-staff-form")?.addEventListener("click", () => $("#staff-form-panel").classList.add("hidden"));
+  $("#abandon-staff-create")?.addEventListener("click", () => {
+    if (staffSaveInProgress || !staffCanManage()) return;
+    if (form.elements.id.value) return;
+    getStaffCreateAttempt().abandon();
+    showStaffForm();
+    setMessage("#staff-form-status", "The previous attempt was abandoned. A new creation attempt is ready.");
+  });
   $("#add-staff-appointment")?.addEventListener("click", () => {
     $("#staff-appointments .staff-no-appointments")?.remove();
     $("#staff-appointments").insertAdjacentHTML("beforeend", staffAppointmentRow());
@@ -5133,8 +5164,10 @@ function initializeStaffManagement() {
   $("#staff-verification-filter")?.addEventListener("change", () => loadStaff(1));
   let timer;
   $("#staff-search")?.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(() => loadStaff(1), 250); });
+  let staffSaveInProgress = false;
   form?.addEventListener("submit", async event => {
     event.preventDefault();
+    if (staffSaveInProgress) return;
     if (!staffCanManage()) return showToast("You do not have permission to manage staff.", "error");
     const payload = {
       fullName: form.elements.fullName.value.trim(),
@@ -5145,17 +5178,33 @@ function initializeStaffManagement() {
       biography: form.elements.biography.value.trim() || null,
       memories: form.elements.memories.value.trim() || null,
       isPublic: form.elements.isPublic.checked,
+      publicName: form.elements.publicName.checked,
+      publicServiceHistory: form.elements.publicServiceHistory.checked,
+      publicBiography: form.elements.publicBiography.checked,
       appointments: collectStaffAppointments()
     };
     const id = form.elements.id.value;
+    const submitButton = form.querySelector('button[type="submit"]');
+    let headers;
+    if (!id) {
+      headers = { "Idempotency-Key": getStaffCreateAttempt().begin() };
+    }
+    staffSaveInProgress = true;
+    if (submitButton) submitButton.disabled = true;
     try {
       setMessage("#staff-form-status", id ? "Saving staff profile..." : "Creating staff profile...");
-      await api(id ? `${staffEndpoint}/${encodeURIComponent(id)}` : staffEndpoint, { method: id ? "PUT" : "POST", body: JSON.stringify(payload) });
+      await api(id ? `${staffEndpoint}/${encodeURIComponent(id)}` : staffEndpoint, { method: id ? "PUT" : "POST", body: JSON.stringify(payload), ...(headers ? { headers } : {}) });
+      if (!id) {
+        getStaffCreateAttempt().complete();
+      }
       $("#staff-form-panel").classList.add("hidden");
       showToast(`Staff profile ${id ? "updated" : "created"}.`);
       await loadStaff(staffPage);
     } catch (error) {
       setMessage("#staff-form-status", error.message || "Unable to save staff profile.", "error");
+    } finally {
+      staffSaveInProgress = false;
+      if (submitButton) submitButton.disabled = false;
     }
   });
   (async () => {

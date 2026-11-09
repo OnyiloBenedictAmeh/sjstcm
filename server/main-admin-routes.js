@@ -1,3 +1,5 @@
+import { createHash, randomUUID } from "node:crypto";
+
 const ENROLLMENT_STATUSES = new Set(["ENROLLED", "PROMOTED", "COMPLETED", "WITHDRAWN"]);
 const STAFF_EMPLOYMENT_STATUSES = new Set(["CURRENT", "FORMER"]);
 const STAFF_VERIFICATION_STATUSES = new Set(["PENDING", "VERIFIED", "REJECTED", "NEEDS_INFORMATION"]);
@@ -26,10 +28,10 @@ const staffText = (value, max, label, required = false) => {
 };
 function staffDateValue(value) {
   if (value === undefined || value === null || value === "") return null;
-  if (typeof value !== "string") return undefined;
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
   const parsed = new Date(value);
   if (!Number.isFinite(parsed.getTime())) return undefined;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value) && parsed.toISOString().slice(0, 10) !== value) return undefined;
+  if (parsed.toISOString().slice(0, 10) !== value) return undefined;
   return parsed;
 }
 function validateStaffAppointment(input) {
@@ -48,11 +50,16 @@ function validateStaffAppointment(input) {
   if (!validYear(input.startYear) || !validYear(input.endYear)) return { error: "Appointment years must be between 1000 and 9999." };
   const startYear = input.startYear == null || input.startYear === "" ? null : Number(input.startYear);
   const endYear = input.endYear == null || input.endYear === "" ? null : Number(input.endYear);
-  if (startYear && endYear && endYear < startYear) return { error: "Appointment end year cannot be earlier than its start year." };
+  if (startDate && startYear != null && startDate.getUTCFullYear() !== startYear) return { error: "Appointment start year must match its start date." };
+  if (endDate && endYear != null && endDate.getUTCFullYear() !== endYear) return { error: "Appointment end year must match its end date." };
+  const effectiveStartYear = startYear ?? startDate?.getUTCFullYear();
+  const effectiveEndYear = endYear ?? endDate?.getUTCFullYear();
+  if (effectiveStartYear != null && effectiveEndYear != null && effectiveEndYear < effectiveStartYear) return { error: "Appointment end year cannot be earlier than its start year." };
   if (input.subjects != null && !Array.isArray(input.subjects)) return { error: "Subjects must be a list of text values." };
   const rawSubjects = input.subjects || [];
   if (rawSubjects.some(subject => typeof subject !== "string" || subject.trim().length > 120)) return { error: "Each subject must be text and at most 120 characters." };
-  const subjects = [...new Map(rawSubjects.map(subject => subject.trim()).filter(Boolean).map(subject => [subject.toLocaleLowerCase(), subject])).values()];
+  const subjects = [...new Map(rawSubjects.map(subject => subject.trim()).filter(Boolean).map(subject => [subject.toLowerCase(), subject])).values()]
+    .sort((left, right) => left.toLowerCase() < right.toLowerCase() ? -1 : left.toLowerCase() > right.toLowerCase() ? 1 : 0);
   if (subjects.length > 30) return { error: "An appointment can have at most 30 subjects." };
   return { value: {
     position: position.value,
@@ -68,7 +75,45 @@ function validateStaffAppointment(input) {
     isCurrent: input.isCurrent === true || input.isCurrent === "true"
   } };
 }
-const appointmentKey = appointment => [appointment.position.trim().toLocaleLowerCase(), appointment.departmentId || (appointment.departmentLabel || "").trim().toLocaleLowerCase(), appointment.startDate ? new Date(appointment.startDate).toISOString().slice(0, 10) : "", appointment.endDate ? new Date(appointment.endDate).toISOString().slice(0, 10) : ""].join("|");
+function normalizedAppointmentEndpoint(date, year) {
+  if (date) return ["date", new Date(date).toISOString().slice(0, 10)];
+  if (year != null) return ["year", year];
+  return null;
+}
+function appointmentKey(appointment) {
+  const hasStructuredPeriod = appointment.startDate || appointment.endDate || appointment.startYear != null || appointment.endYear != null;
+  return JSON.stringify([
+    appointment.position.trim().toLowerCase(),
+    appointment.departmentId ? ["id", appointment.departmentId] : ["label", (appointment.departmentLabel || "").trim().toLowerCase()],
+    normalizedAppointmentEndpoint(appointment.startDate, appointment.startYear),
+    normalizedAppointmentEndpoint(appointment.endDate, appointment.endYear),
+    hasStructuredPeriod ? null : (appointment.approximatePeriod || "").trim().toLowerCase(),
+    [...appointment.subjects].map(subject => subject.trim().toLowerCase()).sort()
+  ]);
+}
+function normalizedCreatePayload(profile, appointments) {
+  const normalizedProfile = Object.fromEntries(Object.entries(profile).sort(([left], [right]) => left.localeCompare(right)));
+  const normalizedAppointments = appointments.map(appointment => ({
+    ...appointment,
+    startDate: appointment.startDate?.toISOString() || null,
+    endDate: appointment.endDate?.toISOString() || null,
+    subjects: appointment.subjects.map(subject => subject.trim().toLowerCase()).sort()
+  })).sort((left, right) => {
+    const leftKey = appointmentKey(left), rightKey = appointmentKey(right);
+    return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0;
+  });
+  return JSON.stringify({ profile: normalizedProfile, appointments: normalizedAppointments });
+}
+function sha256(value) { return createHash("sha256").update(value, "utf8").digest("hex"); }
+async function findStaffCreateRequest(client, actorScope, keyHash) {
+  const rows = await client.$queryRaw`
+    SELECT "payloadHash", "staffProfileId"
+    FROM "StaffProfileCreateRequest"
+    WHERE "actorScope" = ${actorScope} AND "keyHash" = ${keyHash}
+    LIMIT 1
+  `;
+  return rows[0] || null;
+}
 function apiError(res, error, label) {
   if (error?.code === "P2002") return res.status(409).json({ error: "A record with that identifier already exists." });
   if (error?.code === "P2025") return res.status(404).json({ error: "Record not found." });
@@ -124,7 +169,7 @@ export function registerMainAdminRoutes(app, prisma, auth, requirePermission, ge
     } catch (error) { return apiError(res, error, "ADMIN STAFF GET ERROR"); }
   });
 
-  async function validateStaffProfile(input, existing = null) {
+  async function validateStaffProfile(input, existing = null, checkLinkedAccount = true) {
     const data = {};
     const fields = [
       ["fullName", 160, true], ["formerName", 160], ["biography", 10000], ["memories", 10000]
@@ -149,7 +194,7 @@ export function registerMainAdminRoutes(app, prisma, auth, requirePermission, ge
     if (Object.hasOwn(input, "userId") || !existing) {
       const userId = input.userId == null || input.userId === "" ? null : clean(input.userId);
       if (input.userId != null && input.userId !== "" && !userId) return { error: "Linked account is invalid." };
-      if (userId) {
+      if (userId && checkLinkedAccount) {
         const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, role: true } });
         if (!user || user.role !== "STAFF") return { error: "Only an existing STAFF account can be linked." };
         const linked = await prisma.staffProfile.findUnique({ where: { userId }, select: { id: true } });
@@ -160,7 +205,7 @@ export function registerMainAdminRoutes(app, prisma, auth, requirePermission, ge
     return { value: data };
   }
 
-  async function validateStaffAppointments(input, existingAppointments = []) {
+  async function validateStaffAppointments(input, existingAppointments = [], checkDepartments = true) {
     if (input === undefined) return { value: undefined };
     if (!Array.isArray(input) || input.length > 50) return { error: "Appointments must be a list of at most 50 entries." };
     const values = [];
@@ -176,7 +221,7 @@ export function registerMainAdminRoutes(app, prisma, auth, requirePermission, ge
       const key = appointmentKey(value);
       if (keys.has(key)) return { conflict: "Duplicate appointments are not allowed." };
       keys.add(key);
-      if (value.departmentId) {
+      if (value.departmentId && checkDepartments) {
         const department = await prisma.department.findUnique({ where: { id: value.departmentId }, select: { id: true } });
         if (!department) return { error: "Selected department was not found." };
       }
@@ -185,21 +230,18 @@ export function registerMainAdminRoutes(app, prisma, auth, requirePermission, ge
     return { value: values };
   }
 
-  async function saveStaff(req, res, update) {
+  async function saveStaff(req, res) {
     try {
-      const existing = update ? await prisma.staffProfile.findUnique({ where: { id: req.params.id }, include: { appointments: true } }) : null;
-      if (update && !existing) return res.status(404).json({ error: "Staff profile not found." });
+      const existing = await prisma.staffProfile.findUnique({ where: { id: req.params.id }, include: { appointments: true } });
+      if (!existing) return res.status(404).json({ error: "Staff profile not found." });
       const profile = await validateStaffProfile(req.body || {}, existing);
       if (profile.error) return bad(res, profile.error);
       if (profile.conflict) return res.status(409).json({ error: profile.conflict });
       const appointments = await validateStaffAppointments(req.body?.appointments, existing?.appointments || []);
       if (appointments.error) return bad(res, appointments.error);
       if (appointments.conflict) return res.status(409).json({ error: appointments.conflict });
-      if (!update && appointments.value?.some(item => item.id)) return bad(res, "New staff profiles cannot reference existing appointment IDs.");
       const saved = await prisma.$transaction(async tx => {
-        const item = update
-          ? await tx.staffProfile.update({ where: { id: existing.id }, data: profile.value })
-          : await tx.staffProfile.create({ data: profile.value });
+        const item = await tx.staffProfile.update({ where: { id: existing.id }, data: profile.value });
         if (appointments.value !== undefined) {
           const retained = appointments.value.filter(appointment => appointment.id).map(appointment => appointment.id);
           await tx.staffAppointment.deleteMany({ where: { staffProfileId: item.id, ...(retained.length ? { id: { notIn: retained } } : {}) } });
@@ -211,15 +253,92 @@ export function registerMainAdminRoutes(app, prisma, auth, requirePermission, ge
         }
         return tx.staffProfile.findUnique({ where: { id: item.id }, include: staffInclude });
       });
-      return res.status(update ? 200 : 201).json(saved);
+      return res.status(200).json(saved);
     } catch (error) {
       if (error?.code === "P2002") return res.status(409).json({ error: "The staff account is already linked or the record conflicts with an existing entry." });
       if (error?.code === "P2003") return res.status(400).json({ error: "A linked account or department does not exist." });
       return apiError(res, error, "ADMIN STAFF SAVE ERROR");
     }
   }
-  app.post("/api/admin/staff", ...manageStaff, (req, res) => saveStaff(req, res, false));
-  app.put("/api/admin/staff/:id", ...manageStaff, (req, res) => saveStaff(req, res, true));
+  async function createStaffWithIdempotency(req, res) {
+    let actorScope, keyHash, payloadHash;
+    try {
+      const requestKey = clean(req.get("Idempotency-Key"));
+      if (!requestKey || requestKey.length > 200) return bad(res, "A valid Idempotency-Key is required for staff creation.");
+      actorScope = req.user.sub;
+      keyHash = sha256(requestKey);
+      const previousRequest = await findStaffCreateRequest(prisma, actorScope, keyHash);
+      const profile = await validateStaffProfile(req.body || {}, null, false);
+      if (profile.error) return previousRequest
+        ? res.status(409).json({ error: "This Idempotency-Key was already used for a different staff profile request." })
+        : bad(res, profile.error);
+      if (profile.conflict) return res.status(409).json({ error: profile.conflict });
+      const appointments = await validateStaffAppointments(req.body?.appointments, [], false);
+      if (appointments.error) return previousRequest
+        ? res.status(409).json({ error: "This Idempotency-Key was already used for a different staff profile request." })
+        : bad(res, appointments.error);
+      if (appointments.conflict) return previousRequest
+        ? res.status(409).json({ error: "This Idempotency-Key was already used for a different staff profile request." })
+        : res.status(409).json({ error: appointments.conflict });
+      if (appointments.value?.some(item => item.id)) return previousRequest
+        ? res.status(409).json({ error: "This Idempotency-Key was already used for a different staff profile request." })
+        : bad(res, "New staff profiles cannot reference existing appointment IDs.");
+      payloadHash = sha256(normalizedCreatePayload(profile.value, appointments.value || []));
+      if (previousRequest) {
+        if (previousRequest.payloadHash !== payloadHash) return res.status(409).json({ error: "This Idempotency-Key was already used for a different staff profile request." });
+        if (!previousRequest.staffProfileId) return res.status(409).json({ error: "The original staff creation request is incomplete. Retry shortly." });
+        const original = await prisma.staffProfile.findUnique({ where: { id: previousRequest.staffProfileId }, include: staffInclude });
+        if (!original) return res.status(410).json({ error: "The staff profile created by this request was deleted. A retry will not create a replacement profile." });
+        return res.status(201).json(original);
+      }
+      const checkedProfile = await validateStaffProfile(req.body || {});
+      if (checkedProfile.error) return bad(res, checkedProfile.error);
+      if (checkedProfile.conflict) return res.status(409).json({ error: checkedProfile.conflict });
+      const checkedAppointments = await validateStaffAppointments(req.body?.appointments);
+      if (checkedAppointments.error) return bad(res, checkedAppointments.error);
+      if (checkedAppointments.conflict) return res.status(409).json({ error: checkedAppointments.conflict });
+      const saved = await prisma.$transaction(async tx => {
+        const item = await tx.staffProfile.create({ data: checkedProfile.value });
+        for (const appointment of checkedAppointments.value || []) {
+          const { id, ...data } = appointment;
+          if (id) throw new Error("New staff profiles cannot reference existing appointment IDs.");
+          await tx.staffAppointment.create({ data: { ...data, staffProfileId: item.id } });
+        }
+        const result = await tx.staffProfile.findUnique({ where: { id: item.id }, include: staffInclude });
+        const reservation = await tx.$queryRaw`
+          INSERT INTO "StaffProfileCreateRequest" ("id", "actorScope", "keyHash", "payloadHash", "staffProfileId")
+          VALUES (${randomUUID()}, ${actorScope}, ${keyHash}, ${payloadHash}, ${item.id})
+          ON CONFLICT ("actorScope", "keyHash") DO NOTHING
+          RETURNING "id"
+        `;
+        if (!reservation.length) {
+          const conflict = new Error("Staff creation idempotency key was already reserved.");
+          conflict.code = "STAFF_CREATE_IDEMPOTENCY_CONFLICT";
+          throw conflict;
+        }
+        return result;
+      });
+      return res.status(201).json(saved);
+    } catch (error) {
+      if (error?.code === "P2002" || error?.code === "STAFF_CREATE_IDEMPOTENCY_CONFLICT") {
+        let previous;
+        try {
+          previous = await findStaffCreateRequest(prisma, actorScope, keyHash);
+        } catch (lookupError) { return apiError(res, lookupError, "STAFF IDEMPOTENCY LOOKUP ERROR"); }
+        if (previous) {
+          if (previous.payloadHash !== payloadHash) return res.status(409).json({ error: "This Idempotency-Key was already used for a different staff profile request." });
+          const original = await prisma.staffProfile.findUnique({ where: { id: previous.staffProfileId }, include: staffInclude });
+          if (!original) return res.status(410).json({ error: "The staff profile created by this request was deleted. A retry will not create a replacement profile." });
+          return res.status(201).json(original);
+        }
+        return res.status(409).json({ error: "The staff account is already linked or the record conflicts with an existing entry." });
+      }
+      if (error?.code === "P2003") return res.status(400).json({ error: "A linked account or department does not exist." });
+      return apiError(res, error, "ADMIN STAFF CREATE ERROR");
+    }
+  }
+  app.post("/api/admin/staff", ...manageStaff, createStaffWithIdempotency);
+  app.put("/api/admin/staff/:id", ...manageStaff, saveStaff);
 
   app.get("/api/admin/students/enrollment-options", ...viewStudents, async (_, res) => {
     try {

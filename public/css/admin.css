@@ -2198,6 +2198,9 @@
 #staff-form-panel { margin-bottom: 20px; }
 #staff-form { padding: 20px 22px; }
 .staff-account-field small { display: block; margin-top: 5px; color: var(--muted); }
+.staff-public-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px 16px; margin: 18px 0; padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; }
+.staff-public-fields legend { padding: 0 7px; font-weight: 700; }
+.staff-public-fields .check-row { margin: 0; }
 .staff-appointments-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 24px 0 12px; }
 .staff-appointments-heading h4,
 .staff-appointments-heading p { margin: 0; }

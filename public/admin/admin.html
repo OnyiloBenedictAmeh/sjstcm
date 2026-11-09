@@ -463,9 +463,16 @@
               <label><span>Biography</span><textarea name="biography" rows="3" maxlength="10000"></textarea></label>
               <label><span>Memories</span><textarea name="memories" rows="3" maxlength="10000"></textarea></label>
               <label class="check-row"><input name="isPublic" type="checkbox"><span>Make this staff profile public</span></label>
+              <fieldset class="staff-public-fields">
+                <legend>Public profile details</legend>
+                <label class="check-row"><input name="publicName" type="checkbox"><span>Show staff name</span></label>
+                <label class="check-row"><input name="publicServiceHistory" type="checkbox"><span>Show service history</span></label>
+                <label class="check-row"><input name="publicBiography" type="checkbox"><span>Show biography</span></label>
+              </fieldset>
               <div class="staff-appointments-heading"><div><h4>Positions and responsibilities</h4><p class="muted">Add more than one appointment to describe concurrent or past responsibilities.</p></div><button class="button secondary" id="add-staff-appointment" type="button">+ Add position</button></div>
               <div id="staff-appointments" class="staff-appointments"></div>
               <div class="form-actions">
+                <button type="button" class="button secondary" id="abandon-staff-create">Abandon and start new attempt</button>
                 <button type="button" class="button secondary" id="cancel-staff-form">Cancel</button>
                 <button type="submit" class="button">Save staff profile</button>
               </div>
@@ -1535,6 +1542,7 @@
        JAVASCRIPT
   ========================================================== -->
 
+    <script src="js/staff-create-attempt.js"></script>
     <script src="js/admin.js"></script>
   </body>
 </html>

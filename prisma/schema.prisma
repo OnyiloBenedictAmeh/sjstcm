@@ -288,6 +288,20 @@ model StaffAppointment {
   @@index([staffProfileId, startYear])
 }
 
+// Permanent idempotency tombstones prevent duplicate creation after retries,
+// server restarts, or deletion of the original staff profile.
+model StaffProfileCreateRequest {
+  id             String   @id @default(cuid())
+  actorScope     String
+  keyHash        String   @db.Char(64)
+  payloadHash    String   @db.Char(64)
+  staffProfileId String
+  createdAt      DateTime @default(now())
+
+  @@unique([actorScope, keyHash])
+  @@index([staffProfileId])
+}
+
 model AlumniReview {
   id             String             @id @default(cuid())
   alumniId       String
