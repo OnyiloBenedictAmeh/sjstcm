@@ -33,6 +33,7 @@ async function redirectIfAuthenticated() {
 redirectIfAuthenticated();
 
 const loginStatus = document.querySelector("#login-status");
+const resendVerification = document.querySelector("#resend-verification");
 if (loginStatus && new URLSearchParams(window.location.search).get("notice") === "session-expired") {
   loginStatus.textContent = "Your session has expired. Please sign in again.";
 }
@@ -213,6 +214,10 @@ form?.addEventListener(
 
       if (!response.ok) {
 
+        if (response.status === 403 && /verify your email/i.test(result.error || "")) {
+          if (resendVerification) resendVerification.hidden = false;
+        }
+
         throw new Error(
           result.error ||
           "Login failed. Please check your details."
@@ -307,3 +312,26 @@ form?.addEventListener(
 
   }
 );
+
+resendVerification?.addEventListener("click", async () => {
+  const email = document.querySelector("#login-email")?.value.trim().toLowerCase() || "";
+  if (!email) {
+    if (loginStatus) loginStatus.textContent = "Enter your email address first.";
+    return;
+  }
+  resendVerification.disabled = true;
+  try {
+    const response = await fetch("/api/auth/resend-verification", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (loginStatus) loginStatus.textContent = result.message || result.error || "If this account needs verification, instructions will be sent.";
+  } catch {
+    if (loginStatus) loginStatus.textContent = "Unable to request a verification message right now.";
+  } finally {
+    resendVerification.disabled = false;
+  }
+});

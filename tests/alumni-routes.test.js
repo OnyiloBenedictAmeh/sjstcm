@@ -15,6 +15,8 @@ const reviewRows = [];
 const studentRows = new Map([["student-1", { id: "student-1", studentId: "SJ-001", firstName: "Sam", middleName: null, lastName: "Student", email: "sam@example.test", status: "GRADUATED" }]]);
 let listQuery;
 let failProfileCreate = false;
+const verificationRequests = [];
+const emailVerification = { isConfigured: true, issueAndSend: async user => { verificationRequests.push({ email: user.email, name: user.name }); return true; } };
 const classSetRows = new Map([["set-edit", { id: "set-edit", displayName: "1995 Set", entryYear: 1990, exitYear: 1995, isPublic: false }]]);
 const prisma = {
   $transaction: async fn => {
@@ -62,15 +64,19 @@ function requirePermission(...required) {
   return (req, res, next) => req.user.role === "ADMIN" || required.every(p => String(req.get("x-test-permissions") || "").split(",").includes(p)) ? next() : res.sendStatus(403);
 }
 before(async () => {
-  const app = express(); app.use(express.json()); registerAlumniRoutes(app, prisma, auth, allow, requirePermission);
+  const app = express(); app.use(express.json()); registerAlumniRoutes(app, prisma, auth, allow, requirePermission, emailVerification);
   server = app.listen(0); await new Promise(resolve => server.once("listening", resolve));
   base = "http://127.0.0.1:" + server.address().port;
 });
 after(async () => { if (server) await new Promise(resolve => server.close(resolve)); });
 
-test("public registration stores independent pending profile with hashed password and fixed ALUMNI role", async () => {
+test("public registration stores independent pending profile and initiates email verification without exposing credentials", async () => {
   const response = await fetch(base + "/api/alumni/register", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: "Alum@example.com", password: "strong-password", fullName: "Alumni Example", role: "ADMIN", verificationStatus: "VERIFIED", studentId: "student-1", exitYear: "1990" }) });
-  assert.equal(response.status, 201);
+  assert.equal(response.status, 202);
+  const responseBody = await response.json();
+  assert.equal("password" in responseBody, false);
+  assert.equal("token" in responseBody, false);
+  assert.deepEqual(verificationRequests.at(-1), { email: "alum@example.com", name: "Alumni Example" });
   assert.equal(users.get("alum@example.com").role, "ALUMNI");
   assert.equal(await bcrypt.compare("strong-password", users.get("alum@example.com").passwordHash), true);
   assert.equal(alumniRows[0].verificationStatus, "PENDING"); assert.equal(alumniRows[0].isPublic, false);
@@ -81,7 +87,10 @@ test("registration validates input and handles duplicate email without disclosin
   const invalid = await fetch(base + "/api/alumni/register", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: "bad", password: "x", fullName: "" }) });
   assert.equal(invalid.status, 400);
   const duplicate = await fetch(base + "/api/alumni/register", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: "ALUM@example.com", password: "strong-password", fullName: "Second Example" }) });
-  assert.equal(duplicate.status, 409); assert.match((await duplicate.json()).error, /may already exist/);
+  assert.equal(duplicate.status, 202);
+  const duplicateBody = await duplicate.json();
+  assert.equal(duplicateBody.message, "If this email can be registered, verification instructions will be sent. Your alumni profile remains private until the school verifies it.");
+  assert.equal("error" in duplicateBody, false);
 });
 test("registration transaction rolls back the account if profile creation fails", async () => {
   const beforeCount = alumniRows.length;

@@ -50,7 +50,7 @@ const error = (res, e, fallback) => {
   return res.status(500).json({ error: fallback });
 };
 
-export function registerAlumniRoutes(app, prisma, auth, allow, requirePermission) {
+export function registerAlumniRoutes(app, prisma, auth, allow, requirePermission, emailVerification) {
   const registrationLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 8, standardHeaders: true, legacyHeaders: false });
   app.get("/api/alumni/class-sets", async (_, res) => {
     try {
@@ -84,6 +84,7 @@ export function registerAlumniRoutes(app, prisma, auth, allow, requirePermission
     const password = typeof req.body?.password === "string" ? req.body.password : "";
     const fullName = typeof req.body?.fullName === "string" ? req.body.fullName.trim() : "";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 || password.length < 8 || password.length > 200 || !fullName || fullName.length > 160) return res.status(400).json({ error: "Enter a valid email, a password of at least 8 characters, and your full name." });
+    if (!emailVerification?.isConfigured) return res.status(503).json({ error: "Email verification is temporarily unavailable. Please try again later." });
     const year = value => value === "" || value == null ? null : (/^\d{4}$/.test(String(value)) ? Number(value) : NaN);
     const entryYear = year(req.body?.entryYear), exitYear = year(req.body?.exitYear);
     if ([entryYear, exitYear].some(Number.isNaN) || (entryYear != null && exitYear != null && exitYear < entryYear) || [entryYear, exitYear].some(v => v != null && (v < 1900 || v > new Date().getFullYear() + 1))) return res.status(400).json({ error: "Enter valid school years." });
@@ -104,11 +105,12 @@ export function registerAlumniRoutes(app, prisma, auth, allow, requirePermission
           publicLocation: req.body.publicLocation === true, publicBiography: req.body.publicBiography === true,
           publicMemories: req.body.publicMemories === true, publicPhoto: false
         }, select: { id: true } });
-        return alumni;
+        return { alumni, user: { id: user.id, email, name: fullName } };
       });
-      res.status(201).json({ ok: true, id: result.id, message: "Registration received. Your profile is pending school verification." });
+      await emailVerification.issueAndSend(result.user);
+      res.status(202).json({ ok: true, message: "If this email can be registered, verification instructions will be sent. Your alumni profile remains private until the school verifies it." });
     } catch (e) {
-      if (e?.code === "ALREADY_EXISTS" || e?.code === "P2002") return res.status(409).json({ error: "An account may already exist for this email. Sign in or use a different email." });
+      if (e?.code === "ALREADY_EXISTS" || e?.code === "P2002") return res.status(202).json({ ok: true, message: "If this email can be registered, verification instructions will be sent. Your alumni profile remains private until the school verifies it." });
       return error(res, e, "Unable to submit alumni registration.");
     }
   });

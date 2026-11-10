@@ -6,11 +6,12 @@ const prisma = new PrismaClient();
 
 async function ensureUser(email, role, password) {
   const passwordHash = await bcrypt.hash(password, 12);
+  const emailVerifiedAt = new Date();
 
   return prisma.user.upsert({
     where: { email },
-    update: { role, passwordHash },
-    create: { email, passwordHash, role }
+    update: { role, passwordHash, emailVerifiedAt },
+    create: { email, passwordHash, role, emailVerifiedAt }
   });
 }
 

@@ -307,6 +307,15 @@ async function loadCurrentUser() {
   const canStaffManage = alumniCan("STAFF_MANAGE");
   const canAcademicsView = alumniCan("ACADEMICS_VIEW") || alumniCan("ACADEMICS_MANAGE");
   const canAcademicsManage = alumniCan("ACADEMICS_MANAGE");
+  const canResultsManage = alumniCan("ACADEMICS_MANAGE");
+  const canResultsReview = alumniCan("RESULTS_REVIEW");
+  const canResultsEntry = currentUser.role === "STAFF" && alumniCan("RESULTS_ENTRY");
+  const resultNav = $("#results-nav-item");
+  if (resultNav) resultNav.hidden = !(canResultsManage || canResultsReview || canResultsEntry);
+  if ($("#section-results")) $("#section-results").hidden = !(canResultsManage || canResultsReview || canResultsEntry);
+  document.querySelectorAll('[data-result-tab="dashboard"],[data-result-tab="assignments"]').forEach(node => { node.hidden = !canResultsManage; });
+  document.querySelectorAll('[data-result-tab="review"],[data-result-tab="broadsheet"]').forEach(node => { node.hidden = !canResultsReview; });
+  document.querySelectorAll('[data-result-tab="workspace"]').forEach(node => { node.hidden = !canResultsEntry; });
   for (const [section, allowed] of [["students", canStudentsView], ["staff", canStaffView], ["academics", canAcademicsView]]) {
     const nav = document.querySelector('[data-section="' + section + '"]');
     const panel = document.getElementById("section-" + section);
@@ -341,12 +350,9 @@ async function loadCurrentUser() {
     currentUser.student
       ? studentFullName(currentUser.student)
 
-      : currentUser.alumni?.student
-        ? studentFullName(
-            currentUser.alumni.student
-          )
+      : currentUser.alumni?.fullName || currentUser.staffProfile?.fullName
 
-        : currentUser.email;
+        || (currentUser.role === "ADMIN" ? "Administrator" : "School staff");
 
 
   const displayName =
@@ -453,6 +459,10 @@ const sectionInfo = {
     title: "Academics"
   },
 
+  results: {
+    title: "Results"
+  },
+
   alumni: {
     title: "Alumni"
   },
@@ -500,6 +510,7 @@ function openSection(section) {
     showLockedDoor();
     return;
   }
+  if (section === "results" && !alumniCan("ACADEMICS_MANAGE") && !alumniCan("RESULTS_REVIEW") && !(currentUser?.role === "STAFF" && alumniCan("RESULTS_ENTRY"))) { showLockedDoor(); return; }
 
 
   $$(".admin-section")
@@ -3890,7 +3901,7 @@ function renderContent(type) {
   host.innerHTML = rows.map(row => {
     if (type === "news") return `<article class="content-row"><div><strong>${escapeHTML(row.title)}</strong><small>${row.isPublished ? "Published" : "Draft"} · ${formatDate(row.publishedAt || row.createdAt)}</small><small>${escapeHTML(row.slug)}</small></div>${contentActions(type, row)}</article>`;
     if (type === "events") return `<article class="content-row"><div><strong>${escapeHTML(row.title)}</strong><small>${formatDateTime(row.startsAt)}${row.endsAt ? ` – ${formatDateTime(row.endsAt)}` : ""} · ${escapeHTML(row.location || "No location")}</small><small>${new Date(row.endsAt || row.startsAt) >= new Date() ? "Upcoming" : "Past"}</small></div>${contentActions(type, row)}</article>`;
-    return `<article class="content-row"><div><strong>${escapeHTML(row.name)}</strong><small>${escapeHTML(row.description || "No description")}</small><small>${escapeHTML(row.head || "No department head")}</small></div>${contentActions(type, row)}</article>`;
+    return `<article class="content-row department-admin-row">${row.imageUrl ? `<img src="${escapeHTML(row.imageUrl)}" alt="${escapeHTML(row.name)} department" loading="lazy">` : `<div class="department-admin-fallback" aria-hidden="true"><i class="bx bx-book-open"></i></div>`}<div><strong>${escapeHTML(row.name)}</strong><small>${escapeHTML(row.description || "No description")}</small><small>${escapeHTML(row.head || "No department head")}</small></div>${contentActions(type, row)}</article>`;
   }).join("");
 }
 
@@ -3913,7 +3924,10 @@ function showContentForm(type, item = null) {
   form.dataset.contentId = item?.id || "";
   for (const [key, value] of Object.entries(item || {})) {
     const field = form.elements.namedItem(key);
-    if (field && field.type !== "file" && field.type !== "checkbox") field.value = value == null ? "" : key === "startsAt" || key === "endsAt" ? new Date(value).toISOString().slice(0, 16) : String(value);
+    if (field && field.type !== "file" && field.type !== "checkbox") {
+      const date = key === "startsAt" || key === "endsAt" ? new Date(value) : null;
+      field.value = value == null ? "" : date ? new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16) : String(value);
+    }
   }
   if (type === "news" && form.elements.isPublished) form.elements.isPublished.value = item?.isPublished ? "true" : "false";
   if (type === "departments") form.elements.id.value = item?.id || "";
@@ -5260,6 +5274,176 @@ $("#logout")
 // INITIALIZATION
 // ============================================================
 
+const resultState = { periods: [], teacherPeriods: [], subjects: [], assignments: [], roster: null };
+const resultTermName = value => ({ FIRST: "First term", SECOND: "Second term", THIRD: "Third term" }[value] || value);
+const resultStatus = value => ({ DRAFT: "Draft", SUBMITTED: "Submitted", RETURNED: "Returned", APPROVED: "Approved" }[value] || value || "Not started");
+const resultStatusClass = value => String(value || "not-started").toLowerCase().replace(/[^a-z-]/g, "-");
+const resultOption = (item, label) => `<option value="${escapeHTML(item.id)}">${escapeHTML(label)}</option>`;
+
+function setSelectOptions(selector, items, label, placeholder = "Select…") {
+  const select = $(selector); if (!select) return;
+  const previous = select.value;
+  select.innerHTML = `<option value="">${placeholder}</option>${items.map(item => resultOption(item, label(item))).join("")}`;
+  if (items.some(item => item.id === previous)) select.value = previous;
+}
+
+function resultCanManage() { return alumniCan("ACADEMICS_MANAGE"); }
+function resultCanReview() { return alumniCan("RESULTS_REVIEW"); }
+
+async function loadResultPeriods() {
+  resultState.periods = await api("/api/admin/results/periods");
+  const opts = resultState.periods.map(period => ({ ...period, id: period.id, label: `${period.session?.name || "Session"} · ${resultTermName(period.term)}` }));
+  for (const selector of ["#teacher-period-select", "#broadsheet-period-select"]) setSelectOptions(selector, opts, item => item.label, "Choose a result period");
+  const list = $("#result-period-list");
+  if (list) list.innerHTML = resultState.periods.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Session</th><th>Term</th><th>Created</th></tr></thead><tbody>${resultState.periods.map(p => `<tr><td>${escapeHTML(p.session?.name)}</td><td>${escapeHTML(resultTermName(p.term))}</td><td>${escapeHTML(formatDate(p.createdAt))}</td></tr>`).join("")}</tbody></table></div>` : '<p class="empty-state">No result periods have been created.</p>';
+}
+
+async function loadResultRequirements(classId) {
+  const host = $("#result-requirements-checks"); if (!host) return;
+  if (!resultState.subjects.length) resultState.subjects = await api("/api/admin/results/subjects");
+  const subjectList = $("#result-subject-list");
+  if (subjectList) subjectList.innerHTML = resultState.subjects.length ? `<ul class="result-subject-list">${resultState.subjects.map(s => `<li><span>${escapeHTML(s.name)}${s.code ? ` · ${escapeHTML(s.code)}` : ""}</span><span class="result-status ${s.isActive ? "approved" : "draft"}">${s.isActive ? "Active" : "Inactive"}</span></li>`).join("")}</ul>` : '<p class="empty-state">No subjects are configured.</p>';
+  let selected = new Set();
+  if (classId) {
+    const sessionId = $("#result-requirements-form [name=sessionId]")?.value;
+    const rows = await api(`/api/admin/results/classes/${encodeURIComponent(classId)}/subjects`);
+    selected = new Set(rows.filter(row => !sessionId || row.sessionId === sessionId).map(row => row.subjectId));
+  }
+  host.innerHTML = resultState.subjects.filter(s => s.isActive).map(subject => `<label class="check-row"><input type="checkbox" name="subjectId" value="${escapeHTML(subject.id)}" ${selected.has(subject.id) ? "checked" : ""}><span>${escapeHTML(subject.name)}${subject.code ? ` (${escapeHTML(subject.code)})` : ""}</span></label>`).join("") || '<p class="muted">No active subjects are available.</p>';
+}
+
+async function loadResultAssignments() {
+  const [assignments, staffResult] = await Promise.all([api("/api/admin/results/assignments"), api("/api/admin/staff?employmentStatus=CURRENT&pageSize=100")]);
+  resultState.assignments = assignments;
+  const profiles = staffResult.items || [];
+  setSelectOptions('#result-assignment-form [name="staffProfileId"]', profiles, item => item.fullName);
+  const host = $("#result-assignment-list");
+  if (host) host.innerHTML = assignments.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Class</th><th>Subject</th><th>Session</th><th>Teacher</th><th>Result-entry teacher</th><th></th></tr></thead><tbody>${assignments.map(a => `<tr><td>${escapeHTML(a.class?.name)}</td><td>${escapeHTML(a.subject?.name)}</td><td>${escapeHTML(a.session?.name)}</td><td>${escapeHTML(a.staffProfile?.fullName)}</td><td><span class="result-status ${a.isPrimary ? "approved" : "draft"}">${a.isPrimary ? "Primary" : "Supporting"}</span></td><td>${a.isPrimary ? "" : `<button class="button secondary" data-primary-assignment="${escapeHTML(a.id)}" type="button">Make primary</button>`}</td></tr>`).join("")}</tbody></table></div>` : '<p class="empty-state">No teaching assignments found.</p>';
+  if (currentUser?.role === "ADMIN") setSelectOptions("#teacher-assignment-select", assignments.filter(a => a.isPrimary), a => `${a.class?.name} · ${a.subject?.name} · ${a.session?.name}`, "Choose assignment");
+}
+
+function renderTeacherRoster(data) {
+  resultState.roster = data;
+  const host = $("#teacher-roster"); if (!host) return;
+  const locked = !["DRAFT", "RETURNED", null].includes(data.submission?.status);
+  host.innerHTML = `<div class="section-intro"><div><h3>${escapeHTML(data.assignment.class.name)} · ${escapeHTML(data.assignment.subject.name)}</h3><p>${escapeHTML(data.period.session?.name)} · ${escapeHTML(resultTermName(data.period.term))} · <span class="result-status ${resultStatusClass(data.submission?.status)}">${escapeHTML(resultStatus(data.submission?.status))}</span></p></div><span>${data.roster.length} students</span></div><div class="table-wrap"><table class="data-table result-entry-table"><thead><tr><th>Student</th><th>Attendance</th><th>CA / 40</th><th>Examination / 60</th><th>Total / 100</th></tr></thead><tbody>${data.roster.map(row => `<tr data-enrollment="${escapeHTML(row.enrollmentId)}"><td><strong>${escapeHTML(studentFullName(row))}</strong><small>${escapeHTML(row.studentId || "")}</small></td><td><select data-result-attendance aria-label="Attendance for ${escapeHTML(studentFullName(row))}" ${locked ? "disabled" : ""}><option value="PRESENT" ${row.result?.attendance !== "ABSENT" ? "selected" : ""}>Present</option><option value="ABSENT" ${row.result?.attendance === "ABSENT" ? "selected" : ""}>Absent</option></select></td><td><input data-result-ca type="number" min="0" max="40" step="1" inputmode="numeric" aria-label="CA score out of 40 for ${escapeHTML(studentFullName(row))}" value="${row.result?.caScore ?? ""}" ${locked || row.result?.attendance === "ABSENT" ? "disabled" : ""}></td><td><input data-result-exam type="number" min="0" max="60" step="1" inputmode="numeric" aria-label="Examination score out of 60 for ${escapeHTML(studentFullName(row))}" value="${row.result?.examScore ?? ""}" ${locked || row.result?.attendance === "ABSENT" ? "disabled" : ""}></td><td data-result-total>${row.result?.attendance === "ABSENT" ? "Absent" : row.result?.totalScore == null ? "Not entered" : escapeHTML(row.result.totalScore)}</td></tr>`).join("")}</tbody></table></div><div class="form-actions"><button class="button secondary" type="button" data-save-result-draft ${locked ? "disabled" : ""}>Save draft</button><button class="button" type="button" data-submit-results ${locked ? "disabled" : ""}>Submit for review</button></div>`;
+  setElementText("#teacher-result-status", locked ? `This submission is ${resultStatus(data.submission.status).toLowerCase()} and cannot be edited.` : "Scores are saved by the server; totals appear after saving.");
+}
+
+function teacherEntries() {
+  return [...document.querySelectorAll("#teacher-roster tr[data-enrollment]")].map(tr => ({ enrollmentId: tr.dataset.enrollment, attendance: tr.querySelector("[data-result-attendance]").value, caScore: tr.querySelector("[data-result-attendance]").value === "ABSENT" ? null : tr.querySelector("[data-result-ca]").value === "" ? null : Number(tr.querySelector("[data-result-ca]").value), examScore: tr.querySelector("[data-result-attendance]").value === "ABSENT" ? null : tr.querySelector("[data-result-exam]").value === "" ? null : Number(tr.querySelector("[data-result-exam]").value) }));
+}
+
+async function openTeacherRoster() {
+  const assignmentId = $("#teacher-assignment-select")?.value, periodId = $("#teacher-period-select")?.value;
+  if (!assignmentId || !periodId) throw new Error("Choose an assignment and result period.");
+  const period = resultState.teacherPeriods.find(item => item.id === periodId);
+  if (!period?.assignmentIds?.includes(assignmentId)) throw new Error("This period has no valid primary assignment for the selected class and subject.");
+  if (period.closedAssignmentIds?.includes(assignmentId)) throw new Error("Results for this class and period are already published and closed.");
+  const data = await api(`/api/teacher/results/assignments/${encodeURIComponent(assignmentId)}/periods/${encodeURIComponent(periodId)}/roster`);
+  renderTeacherRoster(data);
+}
+
+function refreshTeacherPeriodOptions() {
+  const assignmentId = $("#teacher-assignment-select")?.value;
+  const periods = resultState.teacherPeriods.filter(period => period.assignmentIds?.includes(assignmentId));
+  const select = $("#teacher-period-select"); if (!select) return;
+  select.innerHTML = `<option value="">${periods.length ? "Choose a result period" : "No periods for this assignment"}</option>${periods.map(period => {
+    const isClosed = period.closedAssignmentIds?.includes(assignmentId);
+    return `<option value="${escapeHTML(period.id)}" ${isClosed ? "disabled" : ""}>${escapeHTML(period.session?.name)} · ${escapeHTML(resultTermName(period.term))}${isClosed ? " · Published / closed" : ""}</option>`;
+  }).join("")}`;
+  select.disabled = !periods.some(period => !period.closedAssignmentIds?.includes(assignmentId));
+  const status = $("#teacher-result-status");
+  if (!periods.length) setElementText("#teacher-result-status", "There are no result periods for this assignment's academic session.");
+  else if (periods.every(period => period.closedAssignmentIds?.includes(assignmentId))) setElementText("#teacher-result-status", "All listed periods for this assignment are published and closed.");
+  else if (status?.textContent.includes("no valid assignment")) setElementText("#teacher-result-status", "Choose a period to open the roster.");
+}
+
+async function loadResultReview() {
+  const host = $("#result-review-queue"); if (!host) return;
+  const rows = await api("/api/admin/results/submissions?status=SUBMITTED");
+  if (!resultCanManage() && rows.length) {
+    const periods = [...new Map(rows.map(row => [row.resultPeriod.id, { ...row.resultPeriod, label: `${row.resultPeriod.session?.name || "Session"} · ${resultTermName(row.resultPeriod.term)}` }])).values()];
+    setSelectOptions("#broadsheet-period-select", periods, p => p.label, "Choose a period with submissions");
+    setSelectOptions("#broadsheet-class-select", [...new Map(rows.map(row => [row.class.id, row.class])).values()], c => c.name, "Choose a class with submissions");
+  }
+  host.innerHTML = rows.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Class / Subject</th><th>Period</th><th>Teacher</th><th>Updated</th><th>Feedback and action</th></tr></thead><tbody>${rows.map(s => `<tr><td><strong>${escapeHTML(s.class?.name)} · ${escapeHTML(s.subject?.name)}</strong><small class="result-status ${resultStatusClass(s.status)}">${escapeHTML(resultStatus(s.status))}</small></td><td>${escapeHTML(s.resultPeriod?.session?.name)} · ${escapeHTML(resultTermName(s.resultPeriod?.term))}</td><td>${escapeHTML(s.teachingAssignment?.staffProfile?.fullName)}</td><td>${escapeHTML(formatDateTime(s.updatedAt))}</td><td><form class="result-review-form" data-submission="${escapeHTML(s.id)}"><textarea name="reason" rows="2" maxlength="1000" placeholder="Feedback required when returning"></textarea><button class="button secondary" name="action" value="RETURNED">Return</button><button class="button" name="action" value="APPROVED">Approve</button></form></td></tr>${(s.reviews || []).filter(r => r.reason).map(r => `<tr class="result-feedback-row"><td colspan="5"><strong>${escapeHTML(resultStatus(r.action))} feedback:</strong> ${escapeHTML(r.reason)}</td></tr>`).join("")}`).join("")}</tbody></table></div>` : '<p class="empty-state">No submitted results are waiting for review.</p>';
+}
+
+async function loadPublicationControls() {
+  const host = $("#result-publication-controls"); if (!host) return;
+  if (!resultCanManage()) { host.innerHTML = ""; return; }
+  const classes = window.adminClasses || [];
+  host.innerHTML = `<h3>Publish whole class results</h3><div class="content-toolbar"><label><span>Period</span><select id="publish-period-select"><option value="">Choose a result period</option>${resultState.periods.map(p => `<option value="${escapeHTML(p.id)}">${escapeHTML(p.session?.name)} · ${escapeHTML(resultTermName(p.term))}</option>`).join("")}</select></label><label><span>Class</span><select id="publish-class-select"><option value="">Choose a class</option>${classes.map(c => `<option value="${escapeHTML(c.id)}">${escapeHTML(c.name)}</option>`).join("")}</select></label><button class="button" id="publish-class-results" type="button">Publish class results</button></div><p id="publish-status" class="form-status" role="status"></p>`;
+}
+
+async function loadBroadsheet() {
+  const periodId = $("#broadsheet-period-select")?.value, classId = $("#broadsheet-class-select")?.value;
+  if (!periodId || !classId) throw new Error("Choose a result period and class.");
+  const data = await api(`/api/admin/results/periods/${encodeURIComponent(periodId)}/classes/${encodeURIComponent(classId)}/broadsheet`);
+  const subjects = data.requirements.map(r => r.subject);
+  $("#broadsheet-view").innerHTML = `<div class="broadsheet-heading"><h2>SJSTCM · ${escapeHTML(data.period.session?.name)} · ${escapeHTML(resultTermName(data.period.term))}</h2><p>${escapeHTML(window.adminClasses?.find(c => c.id === classId)?.name || "Class")} · ${data.published ? "Published" : "Not published"}</p></div><div class="table-wrap"><table class="data-table broadsheet-table"><thead><tr><th>Student</th>${subjects.map(s => `<th>${escapeHTML(s.name)}<small>CA · Exam · Total</small></th>`).join("")}</tr></thead><tbody>${data.students.map(student => `<tr><td>${escapeHTML(studentFullName(student))}<small>${escapeHTML(student.studentId || "")}</small></td>${subjects.map(subject => { const r = student.results.find(item => item.subjectId === subject.id); return `<td>${!r ? "Not entered" : r.attendance === "ABSENT" ? "Absent" : `${r.caScore == null ? "—" : escapeHTML(r.caScore)} · ${r.examScore == null ? "—" : escapeHTML(r.examScore)} · ${r.totalScore == null ? "Not entered" : escapeHTML(r.totalScore)}`}</td>`; }).join("")}</tr>`).join("")}</tbody></table></div>`;
+  setElementText("#broadsheet-status", data.published ? "Published class result." : "Broadsheet preview. Results are not yet published.");
+}
+
+function initializeResultUI() {
+  const canManage = resultCanManage(), canReview = resultCanReview(), canEntry = currentUser?.role === "STAFF" && alumniCan("RESULTS_ENTRY");
+  if (!canManage && !canReview && !canEntry) return;
+  document.querySelectorAll("[data-result-tab]").forEach(button => button.addEventListener("click", () => {
+    const tab = button.dataset.resultTab;
+    document.querySelectorAll("[data-result-tab]").forEach(item => item.classList.toggle("active", item === button));
+    document.querySelectorAll("[data-result-pane]").forEach(pane => pane.classList.toggle("active", pane.dataset.resultPane === tab));
+    if (tab === "review") loadResultReview().then(loadPublicationControls).catch(error => showToast(error.message, "error"));
+  }));
+  const sessions = window.adminSessions || [], classes = window.adminClasses || [];
+  for (const selector of ['#result-period-form [name="sessionId"]', '#result-requirements-form [name="sessionId"]', '#result-assignment-form [name="sessionId"]']) setSelectOptions(selector, sessions, x => x.name);
+  for (const selector of ['#result-requirements-form [name="classId"]', '#result-assignment-form [name="classId"]', '#broadsheet-class-select']) setSelectOptions(selector, classes, x => x.name);
+  for (const selector of ['#result-assignment-form [name="subjectId"]']) setSelectOptions(selector, resultState.subjects, x => x.name);
+  $("#result-requirements-form [name=sessionId]")?.addEventListener("change", () => loadResultRequirements($("#result-requirements-form [name=classId]").value).catch(e => showToast(e.message, "error")));
+  $("#result-requirements-form [name=classId]")?.addEventListener("change", e => loadResultRequirements(e.target.value).catch(error => showToast(error.message, "error")));
+  $("#result-period-form")?.addEventListener("submit", async event => { event.preventDefault(); try { await api("/api/admin/results/periods", { method: "POST", body: JSON.stringify(Object.fromEntries(new FormData(event.currentTarget))) }); setMessage("#result-period-status", "Result period created.", "success"); await loadResultPeriods(); } catch (error) { setMessage("#result-period-status", error.message, "error"); } });
+  $("#result-subject-form")?.addEventListener("submit", async event => { event.preventDefault(); try { const form = event.currentTarget; await api("/api/admin/results/subjects", { method: "POST", body: JSON.stringify(Object.fromEntries(new FormData(form))) }); form.reset(); resultState.subjects = []; await loadResultRequirements($("#result-requirements-form [name=classId]")?.value); setMessage("#result-subject-status", "Subject added.", "success"); } catch (error) { setMessage("#result-subject-status", error.message, "error"); } });
+  $("#result-requirements-form")?.addEventListener("submit", async event => { event.preventDefault(); const form = event.currentTarget; try { const subjectIds = [...form.querySelectorAll('[name="subjectId"]:checked')].map(x => x.value); await api(`/api/admin/results/classes/${encodeURIComponent(form.elements.classId.value)}/subjects`, { method: "PUT", body: JSON.stringify({ sessionId: form.elements.sessionId.value, subjectIds }) }); setMessage("#result-requirements-status", "Class requirements saved.", "success"); } catch (error) { setMessage("#result-requirements-status", error.message, "error"); } });
+  $("#result-assignment-form")?.addEventListener("submit", async event => { event.preventDefault(); try { await api("/api/admin/results/assignments", { method: "POST", body: JSON.stringify(Object.fromEntries(new FormData(event.currentTarget))) }); setMessage("#result-assignment-status", "Teaching assignment created. The first assignment for a class, subject and session becomes primary.", "success"); await loadResultAssignments(); } catch (error) { setMessage("#result-assignment-status", error.message, "error"); } });
+  $("#result-assignment-list")?.addEventListener("click", async event => { const button = event.target.closest("[data-primary-assignment]"); if (!button) return; const reason = window.prompt("Reason for changing the primary result-entry teacher (optional):") || ""; try { await api(`/api/admin/results/assignments/${encodeURIComponent(button.dataset.primaryAssignment)}/primary`, { method: "PATCH", body: JSON.stringify({ reason }) }); await loadResultAssignments(); } catch (error) { showToast(error.message, "error"); } });
+  $("#teacher-roster-load")?.addEventListener("click", () => openTeacherRoster().catch(error => setMessage("#teacher-result-status", error.message, "error")));
+  $("#teacher-assignment-select")?.addEventListener("change", refreshTeacherPeriodOptions);
+  $("#teacher-roster")?.addEventListener("change", event => { if (event.target.matches("[data-result-attendance]")) { const tr = event.target.closest("tr"); const absent = event.target.value === "ABSENT"; tr.querySelector("[data-result-ca]").disabled = absent; tr.querySelector("[data-result-exam]").disabled = absent; if (absent) { tr.querySelector("[data-result-ca]").value = ""; tr.querySelector("[data-result-exam]").value = ""; } tr.querySelector("[data-result-total]").textContent = absent ? "Absent" : "Not entered"; } });
+  $("#teacher-roster")?.addEventListener("click", async event => { const save = event.target.closest("[data-save-result-draft]"), submit = event.target.closest("[data-submit-results]"); if (!save && !submit) return; try { const assignmentId = $("#teacher-assignment-select").value, periodId = $("#teacher-period-select").value; const entries = teacherEntries(); if (save) await api(`/api/teacher/results/assignments/${encodeURIComponent(assignmentId)}/periods/${encodeURIComponent(periodId)}/draft`, { method: "PUT", body: JSON.stringify({ entries }) }); if (submit) { await api(`/api/teacher/results/assignments/${encodeURIComponent(assignmentId)}/periods/${encodeURIComponent(periodId)}/draft`, { method: "PUT", body: JSON.stringify({ entries }) }); await api(`/api/teacher/results/assignments/${encodeURIComponent(assignmentId)}/periods/${encodeURIComponent(periodId)}/submit`, { method: "POST", body: "{}" }); } await openTeacherRoster(); setMessage("#teacher-result-status", save ? "Draft saved by the server." : "Submitted for review.", "success"); } catch (error) { setMessage("#teacher-result-status", error.message, "error"); } });
+  $("#result-review-queue")?.addEventListener("submit", async event => { const form = event.target.closest(".result-review-form"); if (!form) return; event.preventDefault(); const action = event.submitter?.value; try { await api(`/api/admin/results/submissions/${encodeURIComponent(form.dataset.submission)}/review`, { method: "POST", body: JSON.stringify({ action, reason: form.elements.reason.value }) }); await loadResultReview(); showToast(action === "APPROVED" ? "Submission approved." : "Submission returned with feedback."); } catch (error) { showToast(error.message, "error"); } });
+  $("#result-refresh")?.addEventListener("click", () => initializeResultData().catch(e => showToast(e.message, "error")));
+  $("#review-refresh")?.addEventListener("click", () => loadResultReview().catch(e => showToast(e.message, "error")));
+  $("#broadsheet-load")?.addEventListener("click", () => loadBroadsheet().catch(e => setMessage("#broadsheet-status", e.message, "error")));
+  $("#broadsheet-print")?.addEventListener("click", () => window.print());
+  $("#result-publication-controls")?.addEventListener("click", async event => { if (!event.target.closest("#publish-class-results")) return; const periodId = $("#publish-period-select")?.value, classId = $("#publish-class-select")?.value; if (!periodId || !classId) { setMessage("#publish-status", "Choose a period and class.", "error"); return; } try { await api(`/api/admin/results/periods/${encodeURIComponent(periodId)}/classes/${encodeURIComponent(classId)}/publish`, { method: "POST", body: "{}" }); setMessage("#publish-status", "Class results published.", "success"); } catch (error) { setMessage("#publish-status", error.message, "error"); } });
+  initializeResultData().catch(error => { const status = $("#teacher-result-status"); if (status) status.textContent = error.message; });
+}
+
+async function initializeResultData() {
+  const jobs = [];
+  if (resultCanManage()) {
+    await Promise.all([loadResultPeriods(), loadResultAssignments()]);
+    await loadResultRequirements();
+  }
+  else if (canEntry) jobs.push(Promise.all([api("/api/teacher/results/assignments"), api("/api/teacher/results/periods")]).then(([assignments, periods]) => { resultState.assignments = assignments; resultState.teacherPeriods = periods; setSelectOptions("#teacher-assignment-select", assignments, a => `${a.class?.name} · ${a.subject?.name} · ${a.session?.name}`, "Choose assignment"); refreshTeacherPeriodOptions(); if (!assignments.length) setMessage("#teacher-result-status", "No current primary teaching assignments are available for result entry.", "error"); }));
+  if (resultCanReview()) jobs.push(loadResultReview(), loadPublicationControls());
+  if (resultCanReview() || resultCanManage()) jobs.push(loadBroadsheetClasses());
+  await Promise.all(jobs);
+}
+
+async function loadBroadsheetClasses() {
+  const classes = window.adminClasses || [];
+  setSelectOptions("#broadsheet-class-select", classes, c => c.name, "Choose a class");
+}
+
+$("#results-nav-item")?.addEventListener("click", () => {
+  const tab = currentUser?.role === "STAFF" && alumniCan("RESULTS_ENTRY")
+    ? "workspace"
+    : alumniCan("ACADEMICS_MANAGE") ? "dashboard" : "review";
+  document.querySelector(`[data-result-tab="${tab}"]:not([hidden])`)?.click();
+});
+$("#section-results")?.addEventListener("click", event => { if (event.target.closest('[data-result-tab="dashboard"]')) loadResultPeriods().catch(error => showToast(error.message, "error")); });
+
 async function initializeAdmin() {
 
   try {
@@ -5295,6 +5479,8 @@ async function initializeAdmin() {
       loadOverviewStudents()
 
     ]);
+
+    initializeResultUI();
 
 
     console.log(

@@ -104,6 +104,7 @@ model User {
   id           String   @id @default(cuid())
   email        String   @unique
   passwordHash String
+  emailVerifiedAt DateTime?
   role         UserRole
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -122,6 +123,20 @@ model User {
   teachingAssignmentAudits TeachingAssignmentAudit[]
   resultSubjectExemptions ResultSubjectExemption[]
   createdResultPeriods ResultPeriod[]
+  emailVerificationTokens EmailVerificationToken[]
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique @db.Char(64)
+  expiresAt DateTime
+  consumedAt DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([expiresAt])
 }
 
 model Student {
@@ -689,6 +704,7 @@ model Department {
   name        String   @unique
   description String?
   head        String?
+  imageUrl    String?
   createdAt   DateTime @default(now())
   staffAppointments StaffAppointment[]
 }

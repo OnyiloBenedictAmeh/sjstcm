@@ -226,6 +226,30 @@ export function registerResultRoutes(app, prisma, auth, allow, requirePermission
     } catch (error) { return fail(res, error, "TEACHER ASSIGNMENT LIST ERROR"); }
   });
 
+  app.get("/api/teacher/results/periods", auth, allow("STAFF"), requirePermission("RESULTS_ENTRY"), async (req, res) => {
+    try {
+      const profile = await prisma.staffProfile.findUnique({ where: { userId: req.user.sub }, select: { id: true, employmentStatus: true } });
+      if (!profile || profile.employmentStatus !== "CURRENT") return bad(res, "A current staff profile is required for result entry.", 403);
+      const assignments = await prisma.teachingAssignment.findMany({
+        where: { staffProfileId: profile.id, isPrimary: true, subject: { isActive: true } },
+        select: { id: true, classId: true, sessionId: true }
+      });
+      if (!assignments.length) return res.json([]);
+      const sessionIds = [...new Set(assignments.map(assignment => assignment.sessionId))];
+      const periods = await prisma.resultPeriod.findMany({ where: { sessionId: { in: sessionIds } }, include: { session: true }, orderBy: [{ session: { name: "desc" } }, { term: "asc" }] });
+      if (!periods.length) return res.json([]);
+      const publications = await prisma.classResultPublication.findMany({
+        where: { resultPeriodId: { in: periods.map(period => period.id) }, classId: { in: [...new Set(assignments.map(assignment => assignment.classId))] } },
+        select: { resultPeriodId: true, classId: true }
+      });
+      return res.json(periods.map(period => {
+        const matching = assignments.filter(assignment => assignment.sessionId === period.sessionId);
+        const closedAssignmentIds = matching.filter(assignment => publications.some(publication => publication.resultPeriodId === period.id && publication.classId === assignment.classId)).map(assignment => assignment.id);
+        return { ...period, assignmentIds: matching.map(assignment => assignment.id), closedAssignmentIds };
+      }));
+    } catch (error) { return fail(res, error, "TEACHER RESULT PERIOD LIST ERROR"); }
+  });
+
   app.get("/api/teacher/results/assignments/:assignmentId/periods/:periodId/roster", auth, allow("STAFF"), async (req, res) => {
     try {
       const [assignment, period] = await Promise.all([

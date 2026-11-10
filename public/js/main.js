@@ -450,6 +450,14 @@ function eventCard(event) {
 
 }
 
+function eventEndTime(event) {
+  if (event.endsAt) return new Date(event.endsAt).getTime();
+  const start = new Date(event.startsAt);
+  if (!Number.isFinite(start.getTime())) return NaN;
+  // An event without an explicit end date remains current through its local calendar day.
+  return new Date(start.getFullYear(), start.getMonth(), start.getDate(), 23, 59, 59, 999).getTime();
+}
+
 
 async function loadEvents() {
 
@@ -483,12 +491,12 @@ async function loadEvents() {
     const now = Date.now();
     const upcomingItems = items.filter(event => {
       const startsAt = new Date(event.startsAt).getTime();
-      const endsAt = event.endsAt ? new Date(event.endsAt).getTime() : startsAt;
+      const endsAt = eventEndTime(event);
       return Number.isFinite(startsAt) && Number.isFinite(endsAt) && endsAt >= now;
     });
     const pastItems = items.filter(event => {
       const startsAt = new Date(event.startsAt).getTime();
-      const endsAt = event.endsAt ? new Date(event.endsAt).getTime() : startsAt;
+      const endsAt = eventEndTime(event);
       return Number.isFinite(startsAt) && Number.isFinite(endsAt) && endsAt < now;
     });
 
@@ -581,10 +589,17 @@ async function loadEvents() {
    ========================================================= */
 
 function departmentCard(department) {
+  const image = department.imageUrl
+    ? `<img class="department-card-image" data-department-image src="${esc(contentImageUrl(department.imageUrl))}" alt="${esc(department.name)} department" loading="lazy">`
+    : `<div class="department-card-fallback" role="img" aria-label="${esc(department.name)} department image unavailable"><i class="bx bx-book-open" aria-hidden="true"></i></div>`;
 
   return `
 
-    <article class="card">
+    <article class="card department-card">
+
+      ${image}
+
+      <div class="department-card-content">
 
       <h3>
         ${esc(department.name)}
@@ -609,6 +624,8 @@ function departmentCard(department) {
           `
           : ""
       }
+
+      </div>
 
     </article>
 
@@ -647,6 +664,14 @@ async function loadDepartments() {
       container.innerHTML = visibleItems.length
         ? visibleItems.map(departmentCard).join("")
         : emptyCard("Departments", "Department information has not been published yet.");
+      container.querySelectorAll("img[data-department-image]").forEach(image => image.addEventListener("error", () => {
+        const fallback = document.createElement("div");
+        fallback.className = "department-card-fallback";
+        fallback.setAttribute("role", "img");
+        fallback.setAttribute("aria-label", `${image.alt.replace(/ department$/, "")} department image unavailable`);
+        fallback.innerHTML = '<i class="bx bx-book-open" aria-hidden="true"></i>';
+        image.replaceWith(fallback);
+      }, { once: true }));
     });
 
 

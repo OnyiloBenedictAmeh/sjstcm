@@ -22,6 +22,8 @@ import { registerAlumniRoutes } from "./alumni-routes.js";
 import { registerContentRoutes } from "./content-routes.js";
 import { registerMainAdminRoutes } from "./main-admin-routes.js";
 import { registerResultRoutes } from "./result-routes.js";
+import { registerPublicDirectoryRoutes } from "./public-directory-routes.js";
+import { createEmailVerificationService, loginRequiresVerifiedEmail, registerEmailVerificationRoutes } from "./email-verification.js";
 
 
 // ============================================================
@@ -29,6 +31,7 @@ import { registerResultRoutes } from "./result-routes.js";
 // ============================================================
 
 const prisma = new PrismaClient();
+const emailVerification = createEmailVerificationService(prisma);
 
 const app = express();
 
@@ -529,6 +532,7 @@ const permissionCatalog = [
   ["STUDENTS_MANAGE", "Manage students"],
   ["ACADEMICS_VIEW", "View academic records"],
   ["ACADEMICS_MANAGE", "Manage academic records"],
+  ["RESULTS_ENTRY", "Enter assigned class results"],
   ["RESULTS_REVIEW", "Review results"],
   ["ALUMNI_VIEW", "View alumni records"],
   ["ALUMNI_VERIFY", "Verify alumni submissions"],
@@ -594,7 +598,8 @@ const requireAnyPermission = (...requiredPermissions) =>
     }
   };
 
-registerAlumniRoutes(app, prisma, auth, allow, requirePermission);
+registerAlumniRoutes(app, prisma, auth, allow, requirePermission, emailVerification);
+registerEmailVerificationRoutes(app, prisma, emailVerification, rateLimit);
 registerContentRoutes(app, prisma, auth, requirePermission, {
   imageUpload,
   storeUploadedImage,
@@ -786,6 +791,10 @@ app.post(
 
       }
 
+      if (loginRequiresVerifiedEmail(user)) {
+        return res.status(403).json({ error: "Verify your email before signing in. You can request another verification link from this page." });
+      }
+
       if (user.role === "STUDENT") {
         loginStage = "student lookup";
         const student = await prisma.student.findUnique({
@@ -919,6 +928,7 @@ app.get(
           email: true,
           role: true,
           createdAt: true,
+          staffProfile: { select: { fullName: true } },
           student: {
             select: { firstName: true, middleName: true, lastName: true }
           },
@@ -1169,44 +1179,7 @@ app.get(
 );
 
 
-// ============================================================
-// PUBLIC EVENTS
-// ============================================================
-
-app.get(
-  "/api/events",
-  async (_, res) => {
-
-    try {
-
-      const events =
-        await prisma.event.findMany({
-
-          orderBy: {
-            startsAt: "asc"
-          }
-
-        });
-
-
-      res.json(events);
-
-
-    } catch (error) {
-
-      console.error(
-        "EVENTS ERROR:",
-        error
-      );
-
-      res.status(500).json({
-        error: "Unable to load events."
-      });
-
-    }
-
-  }
-);
+registerPublicDirectoryRoutes(app, prisma);
 
 
 // ============================================================
@@ -1241,47 +1214,6 @@ app.get(
 
       res.status(500).json({
         error: "Unable to load gallery."
-      });
-
-    }
-
-  }
-);
-
-
-// ============================================================
-// PUBLIC DEPARTMENTS
-// ============================================================
-
-app.get(
-  "/api/departments",
-  async (_, res) => {
-
-    try {
-
-      const departments =
-        await prisma.department.findMany({
-
-          orderBy: {
-            name: "asc"
-          }
-
-        });
-
-
-      res.json(departments);
-
-
-    } catch (error) {
-
-      console.error(
-        "DEPARTMENTS ERROR:",
-        error
-      );
-
-      res.status(500).json({
-        error:
-          "Unable to load departments."
       });
 
     }

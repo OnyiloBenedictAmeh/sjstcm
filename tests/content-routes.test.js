@@ -173,9 +173,12 @@ test("events validate real dates/range and support create, update, filters and d
 });
 
 test("departments validate duplicates, update and preserve appointment history on delete", async () => {
-  let response = await call("/api/admin/departments", { user: "editor", method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "Science", description: "Laboratory", head: "A. Teacher" }) }); assert.equal(response.status, 201); const item = await response.json();
+  let response = await call("/api/admin/departments", { user: "editor", method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "Science", description: "Laboratory", head: "A. Teacher", imageUrl: "https://images.example/science.jpg" }) }); assert.equal(response.status, 201); const item = await response.json();
+  assert.equal(item.imageUrl, "https://images.example/science.jpg");
   response = await call("/api/admin/departments", { user: "editor", method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "Science" }) }); assert.equal(response.status, 409);
-  assert.equal((await call(`/api/admin/departments/${item.id}`, { user: "editor", method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "Applied Science", description: "Updated" }) })).status, 200);
+  const updated = await call(`/api/admin/departments/${item.id}`, { user: "editor", method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "Applied Science", description: "Updated" }) });
+  assert.equal(updated.status, 200);
+  assert.equal((await updated.json()).imageUrl, "https://images.example/science.jpg", "partial edits preserve the existing department image");
   state.department.find(row => row.id === item.id).staffAppointments = 2;
   assert.equal((await call(`/api/admin/departments/${item.id}`, { user: "editor", method: "DELETE" })).status, 409);
   assert.ok(state.department.some(row => row.id === item.id));

@@ -157,9 +157,15 @@ async function load() {
 
 
     if (nameElement) {
-
-      nameElement.textContent =
-        `Welcome, ${student.firstName} ${student.lastName}`;
+      const signedInName = [me.student?.firstName, me.student?.middleName, me.student?.lastName]
+        .filter(value => typeof value === "string" && value.trim())
+        .join(" ");
+      const profileName = [student.firstName, student.middleName, student.lastName]
+        .filter(value => typeof value === "string" && value.trim())
+        .join(" ");
+      nameElement.textContent = signedInName || profileName
+        ? `Welcome, ${signedInName || profileName}`
+        : "Welcome to your student dashboard";
 
     }
 

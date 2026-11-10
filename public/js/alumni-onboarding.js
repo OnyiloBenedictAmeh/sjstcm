@@ -114,7 +114,7 @@
       confirmation.querySelector(".reference-number")?.remove();
       confirmation.querySelector(".demo-note")?.remove();
       const message = confirmation.querySelector(".lead");
-      message.textContent = result.message || "Registration received. Your profile is pending school verification.";
+      message.textContent = result.message || "If this email can be registered, verification instructions will be sent. Your profile remains private until the school verifies it.";
       confirmation.querySelector("h2")?.focus({ preventScroll: true });
     } catch (e) { showError(e.message || "Unable to submit registration. Please try again."); next.disabled = false; }
   });

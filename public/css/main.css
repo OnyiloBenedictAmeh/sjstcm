@@ -532,6 +532,16 @@ body:not(.admin-body) > .back-to-top {
   margin-top: 0;
 }
 
+.department-card { min-width: 0; overflow: hidden; padding: 0; }
+.department-card-image,
+.department-card-fallback { display: grid; width: 100%; aspect-ratio: 16 / 9; max-height: 240px; object-fit: cover; background: #edf2f6; color: #526b80; }
+.department-card-fallback { place-items: center; }
+.department-card-fallback i { font-size: clamp(2.25rem, 5vw, 3.5rem); color: #688097; }
+.department-card-content { padding: 22px 24px 24px; }
+.department-card-content h3 { margin: 0 0 10px; }
+.department-card-content p { margin: 0 0 12px; line-height: 1.6; }
+.department-card-content small { display: block; color: var(--muted); }
+
 
 /* =========================================================
    CONTENT GRID

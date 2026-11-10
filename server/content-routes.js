@@ -50,7 +50,7 @@ export function registerContentRoutes(app, prisma, auth, requirePermission, uplo
 
   async function imageStillReferenced(url, except = {}) {
     if (!url) return false;
-    for (const model of ["news", "event", "galleryPhoto"]) {
+    for (const model of ["news", "event", "galleryPhoto", "department"]) {
       if (!prisma[model]?.findFirst) continue;
       const where = { imageUrl: url };
       if (except.model === model) where.id = { not: except.id };
@@ -269,12 +269,26 @@ export function registerContentRoutes(app, prisma, auth, requirePermission, uplo
     const name = clean(req.body.name), description = clean(req.body.description), head = clean(req.body.head);
     if (!name || name.length > 120) return fail(res, "Department name is required and must be at most 120 characters.");
     if (description.length > 2000 || head.length > 120) return fail(res, "Description or department head exceeds the allowed length.");
-    try { const data = { name, description: description || null, head: head || null }; const item = update ? await prisma.department.update({ where: { id: req.params.id }, data }) : await prisma.department.create({ data }); return res.status(update ? 200 : 201).json(item); }
-    catch (e) { if (e?.code === "P2002") return res.status(409).json({ error: "A department with that name already exists." }); return routeError(res, e, "ADMIN DEPARTMENT SAVE ERROR"); }
+    const imageUrl = clean(req.body.imageUrl);
+    if (!validImageUrl(imageUrl)) { await releaseUnpersistedFile(req); return fail(res, "Image URL must be an HTTP(S) URL or an owned content upload."); }
+    let uploadedAsset;
+    try {
+      const existing = update ? await prisma.department.findUnique({ where: { id: req.params.id } }) : null;
+      if (update && !existing) { await releaseUnpersistedFile(req); return res.status(404).json({ error: "Department not found." }); }
+      uploadedAsset = await fileUrl(req);
+      const data = { name, description: description || null, head: head || null, imageUrl: uploadedAsset?.photoUrl || imageUrl || existing?.imageUrl || null };
+      const item = update ? await prisma.department.update({ where: { id: existing.id }, data }) : await prisma.department.create({ data });
+      if (existing?.imageUrl && existing.imageUrl !== item.imageUrl) await removeOwnedImage(existing.imageUrl);
+      return res.status(update ? 200 : 201).json(item);
+    } catch (e) {
+      if (uploadedAsset) await cleanupNewImage(uploadedAsset); else await releaseUnpersistedFile(req);
+      if (e?.code === "P2002") return res.status(409).json({ error: "A department with that name already exists." });
+      return routeError(res, e, "ADMIN DEPARTMENT SAVE ERROR");
+    }
   };
-  app.post("/api/admin/departments", ...guards("departments"), saveDepartment(false));
-  app.put("/api/admin/departments/:id", ...guards("departments"), saveDepartment(true));
-  app.delete("/api/admin/departments/:id", ...guards("departments"), async (req, res) => { try { const item = await prisma.department.findUnique({ where: { id: req.params.id }, include: { _count: { select: { staffAppointments: true } } } }); if (!item) return res.status(404).json({ error: "Department not found." }); if (item._count.staffAppointments) return res.status(409).json({ error: "This department has staff appointment history and cannot be deleted." }); await prisma.department.delete({ where: { id: item.id } }); return res.json({ ok: true }); } catch (e) { return routeError(res, e, "ADMIN DEPARTMENT DELETE ERROR"); } });
+  app.post("/api/admin/departments", ...guards("departments"), upload, saveDepartment(false));
+  app.put("/api/admin/departments/:id", ...guards("departments"), upload, saveDepartment(true));
+  app.delete("/api/admin/departments/:id", ...guards("departments"), async (req, res) => { try { const item = await prisma.department.findUnique({ where: { id: req.params.id }, include: { _count: { select: { staffAppointments: true } } } }); if (!item) return res.status(404).json({ error: "Department not found." }); if (item._count.staffAppointments) return res.status(409).json({ error: "This department has staff appointment history and cannot be deleted." }); await prisma.department.delete({ where: { id: item.id } }); await removeOwnedImage(item.imageUrl); return res.json({ ok: true }); } catch (e) { return routeError(res, e, "ADMIN DEPARTMENT DELETE ERROR"); } });
 
   app.get("/api/admin/gallery", ...guards("gallery"), async (req, res) => { try { const q = clean(req.query.q); return res.json(await prisma.galleryPhoto.findMany({ where: q ? { OR: ["title", "caption"].map(key => ({ [key]: { contains: q, mode: "insensitive" } })) } : {}, orderBy: { createdAt: "desc" } })); } catch (e) { return routeError(res, e, "ADMIN GALLERY LIST ERROR"); } });
   app.get("/api/admin/gallery/:id", ...guards("gallery"), async (req, res) => { try { const item = await prisma.galleryPhoto.findUnique({ where: { id: req.params.id } }); return item ? res.json(item) : res.status(404).json({ error: "Gallery entry not found." }); } catch (e) { return routeError(res, e, "ADMIN GALLERY GET ERROR"); } });

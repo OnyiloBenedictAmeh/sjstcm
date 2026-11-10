@@ -41,6 +41,7 @@ Change the password immediately in a real deployment.
 - Put the app behind HTTPS and a reverse proxy.
 - Replace local upload storage with S3-compatible object storage.
 - Add transactional email/SMS provider credentials.
+- Configure `RESEND_API_KEY`, `EMAIL_FROM` (a sender on a verified Resend domain), and `PUBLIC_SITE_URL` in Vercel to enable account verification email.
 - Configure backups, monitoring and audit-log retention.
 - Change seeded credentials before deployment.
 1. What you downloaded

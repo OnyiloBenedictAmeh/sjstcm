@@ -61,6 +61,11 @@
           <span>Academics</span>
         </button>
 
+        <button class="admin-nav-item" data-section="results" type="button" id="results-nav-item" hidden>
+          <span class="nav-icon"><i class="bx bx-clipboard" aria-hidden="true"></i></span>
+          <span>Results</span>
+        </button>
+
         <p class="nav-label">PEOPLE</p>
 
         <button class="admin-nav-item" data-section="staff" type="button">
@@ -607,6 +612,26 @@
           </div>
         </section>
 
+        <section class="admin-section" id="section-results">
+          <div class="section-intro"><div><span class="eyebrow">ACADEMIC RECORDS</span><h2>Result compilation</h2><p>Set class requirements, manage teaching assignments, review submissions and publish complete class results.</p></div><button class="button secondary" id="results-refresh" type="button">Refresh results</button></div>
+          <div class="result-tabs" role="tablist" aria-label="Result tools">
+            <button class="button secondary active" type="button" data-result-tab="dashboard">Dashboard</button>
+            <button class="button secondary" type="button" data-result-tab="assignments">Teaching assignments</button>
+            <button class="button secondary" type="button" data-result-tab="workspace">Teacher workspace</button>
+            <button class="button secondary" type="button" data-result-tab="review">Review and publish</button>
+            <button class="button secondary" type="button" data-result-tab="broadsheet">Broadsheet</button>
+          </div>
+          <div class="result-pane active" data-result-pane="dashboard"><div class="result-grid">
+            <article class="panel"><div class="panel-header"><div><span class="panel-kicker">PERIODS</span><h3>Sessions and terms</h3></div></div><form id="result-period-form" class="admin-form"><label><span>Session</span><select name="sessionId" required></select></label><label><span>Term</span><select name="term"><option value="FIRST">First term</option><option value="SECOND">Second term</option><option value="THIRD">Third term</option></select></label><button class="button" type="submit">Create result period</button><p class="form-status" id="result-period-status" role="status"></p></form><div id="result-period-list"></div></article>
+            <article class="panel"><div class="panel-header"><div><span class="panel-kicker">SUBJECTS</span><h3>Subject catalogue</h3></div></div><form id="result-subject-form" class="admin-form"><div class="form-grid"><label><span>Subject name</span><input name="name" maxlength="120" required></label><label><span>Code <small>(optional)</small></span><input name="code" maxlength="40"></label></div><button class="button" type="submit">Add subject</button><p class="form-status" id="result-subject-status" role="status"></p></form><div id="result-subject-list"></div></article>
+            <article class="panel"><div class="panel-header"><div><span class="panel-kicker">CLASS REQUIREMENTS</span><h3>Required subjects</h3></div></div><form id="result-requirements-form" class="admin-form"><label><span>Class</span><select name="classId" required></select></label><label><span>Session</span><select name="sessionId" required></select></label><div id="result-requirements-checks" class="result-checks"></div><button class="button" type="submit">Save requirements</button><p class="form-status" id="result-requirements-status" role="status"></p></form></article>
+          </div></div>
+          <div class="result-pane" data-result-pane="assignments"><article class="panel"><div class="panel-header"><div><span class="panel-kicker">STAFFING</span><h3>Teaching assignments</h3></div></div><form id="result-assignment-form" class="admin-form result-assignment-form"><div class="form-grid"><label><span>Current staff member</span><select name="staffProfileId" required></select></label><label><span>Class</span><select name="classId" required></select></label><label><span>Subject</span><select name="subjectId" required></select></label><label><span>Session</span><select name="sessionId" required></select></label></div><button class="button" type="submit">Assign teacher</button><p class="form-status" id="result-assignment-status" role="status"></p></form><div id="result-assignment-list"></div></article></div>
+          <div class="result-pane" data-result-pane="workspace"><article class="panel"><div class="panel-header"><div><span class="panel-kicker">TEACHER WORKSPACE</span><h3>Assigned classes and score entry</h3></div></div><div class="content-toolbar"><label><span>Assignment</span><select id="teacher-assignment-select"></select></label><label><span>Result period</span><select id="teacher-period-select"></select></label><button class="button secondary" id="teacher-roster-load" type="button">Open roster</button></div><div id="teacher-result-status" class="form-status" role="status"></div><div id="teacher-roster"></div></article></div>
+          <div class="result-pane" data-result-pane="review"><article class="panel"><div class="panel-header"><div><span class="panel-kicker">REVIEW QUEUE</span><h3>Submitted results</h3></div><button class="button secondary" id="review-refresh" type="button">Refresh queue</button></div><div id="result-review-queue"></div><div id="result-publication-controls" class="result-publication-controls"></div></article></div>
+          <div class="result-pane" data-result-pane="broadsheet"><article class="panel"><div class="panel-header"><div><span class="panel-kicker">CLASS SUMMARY</span><h3>Broadsheet</h3></div><button class="button secondary" id="broadsheet-print" type="button">Print broadsheet</button></div><div class="content-toolbar"><label><span>Result period</span><select id="broadsheet-period-select"></select></label><label><span>Class</span><select id="broadsheet-class-select"></select></label><button class="button secondary" id="broadsheet-load" type="button">View broadsheet</button></div><div id="broadsheet-status" class="form-status" role="status"></div><div id="broadsheet-view"></div></article></div>
+        </section>
+
         <!-- =====================================================
            ALUMNI
       ====================================================== -->
@@ -1079,6 +1104,8 @@
                 <span>Description</span>
                 <textarea name="description" rows="4"></textarea>
               </label>
+              <label><span>Image URL <small>(optional)</small></span><input name="imageUrl" type="url" maxlength="2048" placeholder="https://…"></label>
+              <label><span>Upload image (JPG, PNG or WebP, max 4 MB)</span><input name="image" type="file" accept="image/jpeg,image/png,image/webp"><img class="content-image-preview" alt="Department image preview" hidden></label>
               <div class="form-actions">
                 <button type="button" class="button secondary" id="cancel-department">Cancel</button>
                 <button type="submit" class="button">Save Department</button>

@@ -24,6 +24,10 @@ function matches(row, where = {}, modelName = "") {
       const some = expected.publications?.some;
       return Boolean(period && some && db.classResultPublication.some(item => item.resultPeriodId === period.id && matches(item, some, "classResultPublication")));
     }
+    if (key === "subject" && modelName === "teachingAssignment") {
+      const subject = db.subject.find(item => item.id === row.subjectId);
+      return Boolean(subject && matches(subject, expected, "subject"));
+    }
     if (expected && typeof expected === "object" && !Array.isArray(expected) && !(expected instanceof Date)) {
       if ("in" in expected) return expected.in.includes(row[key]);
       if ("not" in expected) return row[key] !== expected.not;
@@ -50,6 +54,7 @@ function model(name) {
     findMany: async ({ where = {}, include = {} } = {}) => rows().filter(row => matches(row, where, name)).map(row => {
       const copy = structuredClone(row);
       if (name === "classSubjectRequirement" && include.exemptions) copy.exemptions = db.resultSubjectExemption.filter(item => item.requirementId === row.id && (!include.exemptions.where?.resultPeriodId || item.resultPeriodId === include.exemptions.where.resultPeriodId));
+      if (name === "resultPeriod" && include.session) copy.session = structuredClone(db.session.find(item => item.id === row.sessionId));
       if (name === "enrollment" && include.student) copy.student = structuredClone(db.student.find(item => item.id === row.studentId));
       if (name === "studentSubjectResult") {
         if (include.subject) copy.subject = structuredClone(db.subject.find(item => item.id === row.subjectId));
@@ -108,7 +113,7 @@ prisma.$transaction = async callback => {
 
 const users = {
   admin: { role: "ADMIN", permissions: [] },
-  teacher: { role: "STAFF", permissions: [] },
+  teacher: { role: "STAFF", permissions: ["RESULTS_ENTRY"] },
   helper: { role: "STAFF", permissions: [] },
   reviewer: { role: "STAFF", permissions: ["RESULTS_REVIEW"] },
   studentUser: { role: "STUDENT", permissions: [] },
@@ -189,6 +194,38 @@ test("only primary assigned teachers can enter results and primary changes are a
   db.teachingAssignment.push({ id: "legacy-assignment", staffProfileId: "staff1", classId: "class1", subjectId: science.id, sessionId: "session1", isPrimary: false });
   assert.equal((await call("/api/admin/results/assignments/legacy-assignment/primary", "admin", "PATCH", { reason: "Initial primary designation" })).status, 200);
   assert.equal(db.teachingAssignment.find(row => row.id === "legacy-assignment").isPrimary, true);
+});
+
+test("result-entry teachers can list only periods for their current primary active assignments", async () => {
+  const math = await createSubject("Mathematics");
+  const science = await createSubject("Science");
+  const inactive = await createSubject("Archived",);
+  db.subject.find(row => row.id === inactive.id).isActive = false;
+  const primary = await assign("staff1", math.id);
+  await assign("staff2", science.id);
+  await assign("staff1", science.id, false);
+  db.class.push({ id: "class2", name: "JSS 2" });
+  db.session.push({ id: "session2", name: "2027/2028" });
+  db.teachingAssignment.push({ id: "inactive-assignment", staffProfileId: "staff1", classId: "class1", subjectId: inactive.id, sessionId: "session1", isPrimary: true });
+  db.teachingAssignment.push({ id: "other-teacher-assignment", staffProfileId: "staff2", classId: "class2", subjectId: math.id, sessionId: "session2", isPrimary: true });
+  const ownPeriod = await createPeriod();
+  const unrelated = await prisma.resultPeriod.create({ data: { sessionId: "session2", term: "SECOND" } });
+  const closed = await prisma.resultPeriod.create({ data: { sessionId: "session1", term: "SECOND" } });
+  db.classResultPublication.push({ id: "publication1", resultPeriodId: closed.id, classId: "class1" });
+
+  const periodsResponse = await call("/api/teacher/results/periods", "teacher");
+  assert.equal(periodsResponse.status, 200);
+  const periods = await json(periodsResponse);
+  assert.deepEqual(periods.map(period => period.id), [ownPeriod.id, closed.id]);
+  assert.deepEqual(periods[0].assignmentIds, [primary.id]);
+  assert.deepEqual(periods[0].closedAssignmentIds, []);
+  assert.deepEqual(periods[1].closedAssignmentIds, [primary.id]);
+  assert.equal(periods.some(period => period.id === unrelated.id), false);
+  assert.equal("classId" in periods[0], false);
+
+  assert.equal((await call("/api/teacher/results/periods", "helper")).status, 403, "a staff user without RESULTS_ENTRY cannot list periods");
+  assert.equal((await call("/api/admin/results/submissions", "teacher")).status, 403, "result entry does not grant review access");
+  assert.equal((await call(`/api/admin/results/periods/${ownPeriod.id}/classes/class1/publish`, "teacher", "POST", {})).status, 403, "result entry does not grant publication access");
 });
 
 test("score limits, enrollment scope, duplicate entries, and server totals are enforced", async () => {
