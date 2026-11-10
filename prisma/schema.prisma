@@ -71,6 +71,35 @@ enum HistoricalArchiveKind {
   DOCUMENT
 }
 
+enum AcademicTerm {
+  FIRST
+  SECOND
+  THIRD
+}
+
+enum ResultSubmissionStatus {
+  DRAFT
+  SUBMITTED
+  RETURNED
+  APPROVED
+}
+
+enum ResultAttendance {
+  PRESENT
+  ABSENT
+}
+
+enum ResultReviewAction {
+  SUBMITTED
+  RETURNED
+  APPROVED
+}
+
+enum TeachingAssignmentAuditAction {
+  ASSIGNED
+  PRIMARY_CHANGED
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -88,6 +117,11 @@ model User {
   alumniReviews AlumniReview[] @relation("AlumniReviewReviewer")
   staffReviews StaffReview[] @relation("StaffReviewReviewer")
   createdArchiveItems HistoricalArchiveItem[]
+  resultReviews ResultReview[]
+  classResultPublications ClassResultPublication[]
+  teachingAssignmentAudits TeachingAssignmentAudit[]
+  resultSubjectExemptions ResultSubjectExemption[]
+  createdResultPeriods ResultPeriod[]
 }
 
 model Student {
@@ -107,6 +141,7 @@ model Student {
   user           User?         @relation(fields: [userId], references: [id])
   enrollments    Enrollment[]
   academicRecords AcademicRecord[]
+  results        StudentSubjectResult[]
   alumni         Alumni?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
@@ -124,6 +159,10 @@ model Class {
   updatedAt   DateTime     @updatedAt
 
   enrollments Enrollment[]
+  teachingAssignments TeachingAssignment[]
+  resultSubmissions ResultSubmission[]
+  classResultPublications ClassResultPublication[]
+  resultSubjectRequirements ClassSubjectRequirement[]
 }
 
 model Session {
@@ -134,6 +173,10 @@ model Session {
   isCurrent   Boolean      @default(false)
   enrollments Enrollment[]
   academicRecords AcademicRecord[]
+  resultPeriods ResultPeriod[]
+  teachingAssignments TeachingAssignment[]
+  resultSubmissions ResultSubmission[]
+  resultSubjectRequirements ClassSubjectRequirement[]
 }
 
 model Enrollment {
@@ -147,6 +190,189 @@ model Enrollment {
   session     Session          @relation(fields: [sessionId], references: [id])
   createdAt   DateTime         @default(now())
   @@unique([studentId, sessionId])
+  @@unique([id, studentId, classId, sessionId])
+  results StudentSubjectResult[]
+}
+
+model Subject {
+  id          String   @id @default(cuid())
+  code        String?  @unique
+  name        String   @unique
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  assignments TeachingAssignment[]
+  submissions ResultSubmission[]
+  results     StudentSubjectResult[]
+  subjectRequirements ClassSubjectRequirement[]
+}
+
+model TeachingAssignment {
+  id             String       @id @default(cuid())
+  staffProfileId String
+  classId        String
+  subjectId      String
+  sessionId      String
+  isPrimary      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  staffProfile   StaffProfile @relation(fields: [staffProfileId], references: [id], onDelete: Restrict)
+  class          Class        @relation(fields: [classId], references: [id], onDelete: Restrict)
+  subject        Subject      @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  session        Session      @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  submissions    ResultSubmission[]
+  auditHistory   TeachingAssignmentAudit[]
+  primaryChangesFrom TeachingAssignmentAudit[] @relation("PrimaryChangeFrom")
+  primaryChangesTo TeachingAssignmentAudit[] @relation("PrimaryChangeTo")
+
+  @@unique([staffProfileId, classId, subjectId, sessionId])
+  @@unique([id, classId, subjectId, sessionId])
+  @@index([classId, subjectId, sessionId])
+  @@index([staffProfileId, sessionId])
+}
+
+model ClassSubjectRequirement {
+  id        String   @id @default(cuid())
+  classId   String
+  sessionId String
+  subjectId String
+  createdAt DateTime @default(now())
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Restrict)
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  exemptions ResultSubjectExemption[]
+
+  @@unique([classId, sessionId, subjectId])
+  @@index([sessionId, classId])
+}
+
+model ResultPeriod {
+  id             String           @id @default(cuid())
+  sessionId      String
+  term           AcademicTerm
+  createdById    String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  session        Session          @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  createdBy      User?            @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  submissions    ResultSubmission[]
+  results        StudentSubjectResult[]
+  publications   ClassResultPublication[]
+  exemptions     ResultSubjectExemption[]
+
+  @@unique([sessionId, term])
+  @@unique([id, sessionId])
+  @@index([sessionId, createdAt])
+}
+
+model ResultSubmission {
+  id                   String                 @id @default(cuid())
+  resultPeriodId       String
+  sessionId            String
+  classId              String
+  subjectId            String
+  teachingAssignmentId String
+  status               ResultSubmissionStatus @default(DRAFT)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  session              Session                @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  resultPeriod         ResultPeriod           @relation(fields: [resultPeriodId, sessionId], references: [id, sessionId], onDelete: Restrict)
+  class                Class                  @relation(fields: [classId], references: [id], onDelete: Restrict)
+  subject              Subject                @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  teachingAssignment   TeachingAssignment    @relation(fields: [teachingAssignmentId, classId, subjectId, sessionId], references: [id, classId, subjectId, sessionId], onDelete: Restrict)
+  results              StudentSubjectResult[]
+  reviews              ResultReview[]
+
+  @@unique([resultPeriodId, classId, subjectId, teachingAssignmentId])
+  @@unique([id, resultPeriodId, classId, subjectId])
+  @@index([resultPeriodId, classId, status])
+  @@index([teachingAssignmentId, status])
+}
+
+model StudentSubjectResult {
+  id             String           @id @default(cuid())
+  resultPeriodId String
+  studentId      String
+  enrollmentId   String
+  classId        String
+  sessionId      String
+  subjectId      String
+  submissionId   String
+  attendance     ResultAttendance @default(PRESENT)
+  caScore        Int?
+  examScore      Int?
+  totalScore     Int?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  resultPeriod   ResultPeriod     @relation(fields: [resultPeriodId, sessionId], references: [id, sessionId], onDelete: Restrict)
+  student        Student          @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  enrollment     Enrollment       @relation(fields: [enrollmentId, studentId, classId, sessionId], references: [id, studentId, classId, sessionId], onDelete: Restrict)
+  subject        Subject          @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  submission     ResultSubmission @relation(fields: [submissionId, resultPeriodId, classId, subjectId], references: [id, resultPeriodId, classId, subjectId], onDelete: Restrict)
+
+  @@unique([resultPeriodId, studentId, subjectId])
+  @@index([enrollmentId, resultPeriodId])
+  @@index([submissionId])
+}
+
+model ResultReview {
+  id           String            @id @default(cuid())
+  submissionId String
+  actorId      String
+  action       ResultReviewAction
+  reason       String?
+  createdAt    DateTime          @default(now())
+  submission   ResultSubmission @relation(fields: [submissionId], references: [id], onDelete: Restrict)
+  actor        User              @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([submissionId, createdAt])
+  @@index([actorId, createdAt])
+}
+
+model ClassResultPublication {
+  id             String       @id @default(cuid())
+  resultPeriodId String
+  classId        String
+  publishedById  String
+  publishedAt    DateTime     @default(now())
+  resultPeriod   ResultPeriod @relation(fields: [resultPeriodId], references: [id], onDelete: Restrict)
+  class          Class        @relation(fields: [classId], references: [id], onDelete: Restrict)
+  publishedBy    User         @relation(fields: [publishedById], references: [id], onDelete: Restrict)
+
+  @@unique([resultPeriodId, classId])
+  @@index([classId, publishedAt])
+}
+
+model ResultSubjectExemption {
+  id             String   @id @default(cuid())
+  resultPeriodId String
+  requirementId  String
+  reason         String
+  authorizedById String
+  createdAt      DateTime @default(now())
+  resultPeriod   ResultPeriod @relation(fields: [resultPeriodId], references: [id], onDelete: Restrict)
+  requirement    ClassSubjectRequirement @relation(fields: [requirementId], references: [id], onDelete: Restrict)
+  authorizedBy   User @relation(fields: [authorizedById], references: [id], onDelete: Restrict)
+
+  @@unique([resultPeriodId, requirementId])
+  @@index([requirementId, createdAt])
+}
+
+model TeachingAssignmentAudit {
+  id             String   @id @default(cuid())
+  assignmentId   String
+  actorId        String
+  action         TeachingAssignmentAuditAction
+  fromAssignmentId String?
+  toAssignmentId String?
+  reason         String?
+  createdAt      DateTime @default(now())
+  assignment     TeachingAssignment @relation(fields: [assignmentId], references: [id], onDelete: Restrict)
+  fromAssignment TeachingAssignment? @relation("PrimaryChangeFrom", fields: [fromAssignmentId], references: [id], onDelete: Restrict)
+  toAssignment   TeachingAssignment? @relation("PrimaryChangeTo", fields: [toAssignmentId], references: [id], onDelete: Restrict)
+  actor          User @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([assignmentId, createdAt])
+  @@index([actorId, createdAt])
 }
 
 model AcademicRecord {
@@ -262,6 +488,7 @@ model StaffProfile {
   updatedAt          DateTime             @updatedAt
   user               User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
   appointments       StaffAppointment[]
+  teachingAssignments TeachingAssignment[]
   archiveMedia       ArchiveMedia[]
   archiveItems       HistoricalArchiveItem[]
   reviews            StaffReview[]

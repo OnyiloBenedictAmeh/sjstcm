@@ -21,6 +21,7 @@ import { del, get, put } from "@vercel/blob";
 import { registerAlumniRoutes } from "./alumni-routes.js";
 import { registerContentRoutes } from "./content-routes.js";
 import { registerMainAdminRoutes } from "./main-admin-routes.js";
+import { registerResultRoutes } from "./result-routes.js";
 
 
 // ============================================================
@@ -604,6 +605,7 @@ registerContentRoutes(app, prisma, auth, requirePermission, {
   blobTokenFor
 });
 registerMainAdminRoutes(app, prisma, auth, requirePermission, getCurrentPermissions);
+registerResultRoutes(app, prisma, auth, allow, requirePermission);
 
 
 // Private student images are delivered through this same-origin route.
