@@ -132,3 +132,75 @@
   .home-hero-copy .actions .button { padding-inline: 10px; font-size: .76rem; }
   .home-hero-highlights { gap: 8px; font-size: .68rem; }
 }
+
+/* Institutional homepage layout */
+.home-hero-slide { min-height: clamp(500px, 51vw, 650px); }
+.home-hero-copy { width: min(62%, 850px); padding-block: clamp(52px, 7vw, 90px); background: linear-gradient(90deg, rgb(255 255 255 / 94%) 0%, rgb(255 255 255 / 84%) 68%, transparent 100%); }
+.home-hero-copy p { color: #334155; line-height: 1.75; }
+.section-heading { align-items: end; gap: 24px; margin-bottom: 28px; }
+.section-heading h2, .home-overview h2, .home-alumni h2 { max-width: 760px; text-wrap: balance; }
+.home-overview-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 20px; }
+.home-overview-grid .card { padding: clamp(22px,3vw,34px); border-top: 3px solid var(--gold); }
+.home-overview-grid .card h3 { margin: 12px 0; }
+.home-overview-note { background: #f3f7fb; }
+.home-departments-grid, .home-news-grid, .home-events-grid { align-items: stretch; }
+.home-departments-grid .department-card, .home-news-grid .news-card, .home-events-grid .event-card { height: 100%; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 8px 24px rgb(15 23 42 / 6%); }
+.home-departments-grid .department-card-image, .home-news-grid .news-card img, .home-events-grid .event-card img { width: 100%; aspect-ratio: 16/10; object-fit: cover; }
+.home-admissions { display: grid; grid-template-columns: minmax(0,1.5fr) minmax(240px,.7fr); align-items: center; gap: clamp(28px,7vw,90px); padding: clamp(30px,6vw,72px); border-radius: 14px; }
+.home-admissions-copy h2 { margin: 8px 0; }
+.home-admissions-copy p { max-width: 640px; }
+.home-admissions-aside { padding: 25px; border-left: 3px solid var(--gold); background: rgb(255 255 255 / 76%); }
+.home-admissions-aside i { color: var(--accent); font-size: 2rem; }
+.home-service-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; }
+.home-service-card { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; min-height: 112px; padding: 20px; border: 1px solid var(--line); border-radius: 10px; background: white; color: var(--ink); text-decoration: none; transition: border-color .18s ease, transform .18s ease; }
+.home-service-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+.home-service-card strong, .home-service-card small { display: block; }
+.home-service-card small { margin-top: 5px; color: var(--muted); line-height: 1.5; }
+.home-service-icon { display: grid; width: 44px; height: 44px; place-items: center; border-radius: 50%; background: var(--gold-soft); color: var(--accent-dark); font-size: 1.4rem; }
+.home-alumni { display: flex; align-items: center; justify-content: space-between; gap: 30px; padding: clamp(30px,5vw,58px); border-radius: 14px; background: #082b59; color: white; }
+.home-alumni h2 { color: white; }
+.home-alumni p { max-width: 580px; color: #dbe7f4; }
+.home-alumni .button.secondary { background: white; color: #082b59; }
+.footer { row-gap: 32px; }
+@media(max-width:760px) { .home-overview-grid, .home-service-grid { grid-template-columns: 1fr; } .home-admissions { grid-template-columns: 1fr; padding: 28px 5%; } .home-admissions-aside { border-left: 0; border-top: 3px solid var(--gold); } .home-alumni { align-items: flex-start; flex-direction: column; } .home-service-card { min-height: 92px; } .home-hero-copy { width: 100%; } }
+@media(min-width:761px) and (max-width:1020px) { .home-overview-grid, .home-service-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media(prefers-reduced-motion:reduce) { .home-service-card { transition: none; } .home-service-card:hover { transform: none; } }
+
+/* Navy-led homepage palette using the established school identity. */
+.home-hero-toolbar { background: var(--soft); }
+.home-hero-carousel + .section { background: var(--soft); }
+.home-overview-grid .card { background: #fff; border: 1px solid var(--line); border-top: 3px solid var(--gold); box-shadow: var(--shadow); }
+.home-overview-grid .home-overview-note { background: var(--ink); color: #fff; border-color: #244b78; border-top-color: var(--gold); }
+.home-overview-note h3, .home-overview-note p, .home-overview-note .eyebrow { color: #fff; }
+.home-overview-note .text-link { color: #ffe27a; }
+.home-overview-note a:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+#home-departments { padding: clamp(18px,3vw,30px); border-radius: 14px; background: var(--soft); }
+.home-departments-grid .department-card { border-color: #173e6d; background: var(--ink); color: #fff; box-shadow: 0 12px 28px rgb(8 43 89 / 16%); }
+.home-departments-grid .department-card-content { padding: 22px 24px 25px; }
+.home-departments-grid .department-card-content h3 { color: #fff; }
+.home-departments-grid .department-card-content p { color: #e2ebf5; }
+.home-departments-grid .department-card-content small { color: #d0dced; }
+.home-departments-grid .department-card-fallback { background: #163b67; color: #eaf1f8; }
+.home-departments-grid .department-card-fallback i { color: #d8e5f2; }
+.home-news-grid .news-card, .home-events-grid .event-card { border-color: #244b78; background: var(--ink); color: #fff; }
+.home-news-grid .news-card :is(h3,h3 a), .home-events-grid .event-card :is(h3,h3 a) { color: #fff; }
+.home-news-grid .news-card p, .home-news-grid .news-card time, .home-events-grid .event-card p, .home-events-grid .event-card time { color: #e2ebf5; }
+.home-news-grid .news-card a:hover, .home-events-grid .event-card a:hover { color: #ffe27a; }
+.home-news-grid .news-card a:focus-visible, .home-events-grid .event-card a:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+#home-news { background: var(--soft); }
+.home-admissions { background: var(--ink); color: #fff; box-shadow: 0 16px 38px rgb(8 43 89 / 16%); }
+.home-admissions h2, .home-admissions h3, .home-admissions .eyebrow { color: #fff; }
+.home-admissions p { color: #e2ebf5; }
+.home-admissions .home-admissions-aside { border-color: var(--gold); background: #123866; color: #fff; }
+.home-admissions-aside i { color: #ffe27a; }
+.home-admissions .button.secondary { border: 1px solid #dce8f5; background: #fff; color: var(--ink); }
+.home-admissions .button.secondary:hover, .home-admissions .button.secondary:focus-visible { background: #e7f0f8; color: #061f42; }
+.home-services { background: var(--soft); }
+.home-service-card { border-color: #c6d5e5; box-shadow: 0 7px 20px rgb(8 43 89 / 7%); }
+.home-service-card:first-child { background: var(--ink); border-color: var(--ink); color: #fff; }
+.home-service-card:first-child small { color: #e2ebf5; }
+.home-service-card:first-child > span:last-child { color: #ffe27a; }
+.home-service-card:first-child .home-service-icon { background: #214a78; color: #ffe27a; }
+.home-service-card:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.home-alumni { border: 1px solid #244b78; }
+@media (max-width:760px) { #home-departments { padding: 14px; } }
