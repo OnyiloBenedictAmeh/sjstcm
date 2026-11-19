@@ -10,7 +10,7 @@ import { readFile } from "node:fs/promises";
 import { registerContentRoutes } from "../server/content-routes.js";
 
 let server, origin, tempRoot;
-const state = { news: [], event: [], department: [], galleryPhoto: [], setting: [] };
+const state = { news: [], event: [], department: [], galleryPhoto: [], homepageBanner: [], setting: [] };
 const permissions = { admin: ["ADMIN"], editor: ["CONTENT_VIEW", "CONTENT_MANAGE"], eventer: ["EVENTS_MANAGE"], gallerist: ["GALLERY_MANAGE"], reader: ["CONTENT_VIEW"], none: [] };
 const matches = (row, where = {}) => {
   if (where.AND && !where.AND.every(clause => matches(row, clause))) return false;
@@ -210,6 +210,19 @@ test("gallery supports permissioned CRUD, validates image signatures and cleans 
   const external = await externalResponse.json();
   await call(`/api/admin/gallery/${external.id}`, { user: "gallerist", method: "DELETE" });
   assert.equal(stored.size, 0, "external images are never passed to storage cleanup");
+});
+
+test("shared content cleanup preserves media referenced by homepage banners", async () => {
+  const imageUrl = "https://shared.public.blob.vercel-storage.com/content/banner-shared.png";
+  const created = await call("/api/admin/gallery", { user: "gallerist", method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ imageUrl }) });
+  assert.equal(created.status, 201);
+  stored.set("content/banner-shared.png", Buffer.from([1]));
+  state.homepageBanner.push({ id: "banner-reference", imageUrl });
+  const item = await created.json();
+  assert.equal((await call(`/api/admin/gallery/${item.id}`, { user: "gallerist", method: "DELETE" })).status, 200);
+  assert.ok(stored.has("content/banner-shared.png"), "content deletion leaves an image referenced by a homepage banner intact");
+  state.homepageBanner.length = 0;
+  stored.delete("content/banner-shared.png");
 });
 
 test("content UI and public image resolution remain wired", async () => {

@@ -736,3 +736,19 @@ model Setting {
   value     String
   updatedAt DateTime @updatedAt
 }
+
+model HomepageBanner {
+  id           String   @id @default(cuid())
+  heading      String
+  description  String?
+  imageUrl     String
+  imageAlt     String
+  buttonText   String?
+  buttonUrl    String?
+  displayOrder Int      @default(0)
+  isPublished  Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([isPublished, displayOrder])
+}

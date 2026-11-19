@@ -29,3 +29,29 @@ test("Results navigation retains permission gates and has responsive shared cont
   assert.match(css, /@media \(max-width: 900px\)/);
   assert.match(css, /@media \(max-width: 600px\)/);
 });
+
+test("Homepage Banners navigation and section are permission-gated and linked to the management interface", () => {
+  assert.match(html, /data-section="homepage-banners"[^>]*hidden/);
+  assert.match(html, /id="section-homepage-banners" hidden/);
+  assert.match(js, /\{ keys: \["CONTENT_MANAGE"\], title: "Homepage Banners"/);
+  assert.match(js, /"homepage-banners"\s*:\s*\{\s*title: "Homepage Banners"\s*\}/);
+  assert.match(js, /section === "homepage-banners" && !canManageHomepageBanners\(\)/);
+  assert.match(js, /currentUser\?\.permissions\?\.includes\("CONTENT_MANAGE"\)/);
+  assert.match(js, /const homepageBannersEndpoint = "\/api\/admin\/homepage-banners"/);
+});
+
+test("Homepage Banner editor provides accessible image upload, preview, publication feedback, and CRUD controls", () => {
+  for (const id of ["homepage-banner-form", "homepage-banner-list", "homepage-banner-form-status", "homepage-banner-limit", "homepage-banner-image-preview", "homepage-banner-preview-heading", "homepage-banner-preview-description"]) {
+    assert.match(html, new RegExp(`id="${id}"`));
+  }
+  assert.match(html, /name="imageAlt"[^>]*required/);
+  assert.match(html, /name="heading"[^>]*required/);
+  assert.match(html, /name="image" type="file" accept="image\/jpeg,image\/png,image\/webp"/);
+  assert.match(html, /name="isPublished" type="checkbox"/);
+  assert.match(html, /aria-live="polite"/);
+  assert.match(js, /data-homepage-banner-publish/);
+  assert.match(js, /data-homepage-banner-delete/);
+  assert.match(js, /Unpublish one before publishing another/);
+  assert.match(js, /\/publication`\, \{ method: "PATCH"/);
+  assert.match(js, /You do not have permission to manage homepage banners/);
+});

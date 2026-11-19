@@ -216,6 +216,7 @@ const permittedAreaDefinitions = [
   { keys: ["ACADEMICS_VIEW", "ACADEMICS_MANAGE", "RESULTS_REVIEW"], title: "Academic Records", icon: "📚", section: "academics" },
   { keys: ["ALUMNI_VIEW", "ALUMNI_VERIFY", "ALUMNI_MANAGE"], title: "Alumni", icon: "📖", section: "alumni" },
   { keys: ["CONTENT_VIEW", "CONTENT_MANAGE"], title: "News and Content", icon: "📰", section: "news" },
+  { keys: ["CONTENT_MANAGE"], title: "Homepage Banners", icon: "\u{1F5BC}\uFE0F", section: "homepage-banners" },
   { keys: ["EVENTS_MANAGE"], title: "Events", icon: "📅", section: "events" },
   { keys: ["GALLERY_MANAGE"], title: "Gallery", icon: "📸", section: "gallery" },
   { keys: ["SYSTEM_MANAGE"], title: "System Access", icon: "⚙️", section: null }
@@ -475,6 +476,10 @@ const sectionInfo = {
     title: "News"
   },
 
+  "homepage-banners": {
+    title: "Homepage Banners"
+  },
+
   events: {
     title: "Events"
   },
@@ -511,6 +516,7 @@ function openSection(section) {
     return;
   }
   if (section === "results" && !alumniCan("ACADEMICS_MANAGE") && !alumniCan("RESULTS_REVIEW") && !(currentUser?.role === "STAFF" && alumniCan("RESULTS_ENTRY"))) { showLockedDoor(); return; }
+  if (section === "homepage-banners" && !canManageHomepageBanners()) { showLockedDoor(); return; }
 
 
   $$(".admin-section")
@@ -3800,6 +3806,260 @@ const contentLabels = { news: "News article", events: "Event", departments: "Dep
 const contentPanelIds = { news: "news-form-panel", events: "event-form-panel", departments: "department-form-panel", gallery: "gallery-form-panel" };
 const contentCan = (type, manage = false) => currentUser?.role === "ADMIN" || currentUser?.permissions?.includes((manage ? contentManagePermissions : contentPermissions)[type]) || (!manage && currentUser?.permissions?.includes(contentManagePermissions[type]));
 
+const homepageBannersEndpoint = "/api/admin/homepage-banners";
+let homepageBannerRows = [];
+let homepageBannerPreviewObjectUrl = null;
+let homepageBannerPreviewFile = null;
+const canManageHomepageBanners = () => currentUser?.role === "ADMIN" || currentUser?.permissions?.includes("CONTENT_MANAGE");
+
+function homepageBannerPublishedCount() {
+  return homepageBannerRows.filter(banner => banner.isPublished).length;
+}
+
+function updateHomepageBannerPublishHelp() {
+  const form = document.getElementById("homepage-banner-form");
+  const field = form?.elements.isPublished;
+  const help = document.getElementById("homepage-banner-publish-help");
+  if (!field || !help) return;
+  const item = homepageBannerRows.find(row => row.id === form.elements.id.value);
+  const atLimit = homepageBannerPublishedCount() >= 5;
+  field.disabled = atLimit && !item?.isPublished;
+  help.textContent = field.disabled
+    ? "Five banners are already published. Unpublish one before publishing another."
+    : atLimit && item?.isPublished
+      ? "Five banners are published. You can unpublish this banner, but another cannot be published until a slot is available."
+      : "A maximum of five banners can be published at once.";
+}
+
+function renderHomepageBanners() {
+  const list = document.getElementById("homepage-banner-list");
+  const count = homepageBannerPublishedCount();
+  const limit = document.getElementById("homepage-banner-limit");
+  if (limit) limit.textContent = `${count} of 5 banners published.`;
+  updateHomepageBannerPublishHelp();
+  if (!list) return;
+  if (!homepageBannerRows.length) {
+    list.innerHTML = '<p class="empty-state">No homepage banners yet. Add a banner to get started.</p>';
+    return;
+  }
+  list.innerHTML = homepageBannerRows.map(banner => {
+    const atLimit = count >= 5 && !banner.isPublished;
+    const publishHelp = atLimit ? ' title="Five banners are already published. Unpublish one before publishing another."' : "";
+    return `<article class="homepage-banner-card">
+      <img src="${escapeHTML(banner.imageUrl)}" alt="${escapeHTML(banner.imageAlt)}" loading="lazy">
+      <div class="homepage-banner-card-copy">
+        <h4>${escapeHTML(banner.heading)}</h4>
+        <p>${escapeHTML(banner.description || "No description")}</p>
+        <small><span class="homepage-banner-status ${banner.isPublished ? "published" : "unpublished"}">${banner.isPublished ? "Published" : "Unpublished"}</span><span>Display order: ${Number(banner.displayOrder) || 0}</span></small>
+        <div class="content-row-actions">
+          <button class="button secondary" type="button" data-homepage-banner-edit="${escapeHTML(banner.id)}">Edit</button>
+          <button class="button secondary" type="button" data-homepage-banner-publish="${escapeHTML(banner.id)}" aria-label="${banner.isPublished ? "Unpublish" : "Publish"} ${escapeHTML(banner.heading)}"${atLimit ? " disabled" : ""}${publishHelp}>${banner.isPublished ? "Unpublish" : "Publish"}</button>
+          <button class="button danger" type="button" data-homepage-banner-delete="${escapeHTML(banner.id)}">Delete</button>
+        </div>
+      </div>
+    </article>`;
+  }).join("");
+}
+
+async function loadHomepageBanners() {
+  const list = document.getElementById("homepage-banner-list");
+  if (!canManageHomepageBanners()) {
+    const section = document.getElementById("section-homepage-banners");
+    const nav = document.getElementById("homepage-banners-nav-item");
+    if (section) section.hidden = true;
+    if (nav) nav.hidden = true;
+    return;
+  }
+  if (list) list.innerHTML = '<div class="list-loading">Loading homepage banners...</div>';
+  try {
+    homepageBannerRows = await api(homepageBannersEndpoint);
+    renderHomepageBanners();
+  } catch (error) {
+    if (list) list.innerHTML = `<p class="empty-state error">${escapeHTML(error.message || "Unable to load homepage banners. Try refreshing.")}</p>`;
+  }
+}
+
+function updateHomepageBannerPreview() {
+  const form = document.getElementById("homepage-banner-form");
+  if (!form) return;
+  const file = form.elements.image.files?.[0];
+  const preview = document.getElementById("homepage-banner-image-preview");
+  const empty = document.getElementById("homepage-banner-image-empty");
+  let imageUrl = form.elements.imageUrl.value.trim();
+  if (file) {
+    if (file !== homepageBannerPreviewFile) {
+      if (homepageBannerPreviewObjectUrl) URL.revokeObjectURL(homepageBannerPreviewObjectUrl);
+      homepageBannerPreviewObjectUrl = URL.createObjectURL(file);
+      homepageBannerPreviewFile = file;
+    }
+    imageUrl = homepageBannerPreviewObjectUrl;
+  } else if (homepageBannerPreviewObjectUrl) {
+    URL.revokeObjectURL(homepageBannerPreviewObjectUrl);
+    homepageBannerPreviewObjectUrl = null;
+    homepageBannerPreviewFile = null;
+  }
+  if (preview) {
+    preview.hidden = !imageUrl;
+    if (imageUrl) preview.src = imageUrl;
+    else preview.removeAttribute("src");
+    preview.alt = form.elements.imageAlt.value.trim() || "Banner image preview";
+    preview.onerror = () => {
+      preview.hidden = true;
+      if (empty) { empty.hidden = false; empty.textContent = "The image preview could not be loaded."; }
+    };
+  }
+  if (empty) { empty.hidden = Boolean(imageUrl); empty.textContent = "Select an image or enter an image URL to preview it."; }
+  setElementText("#homepage-banner-preview-heading", form.elements.heading.value.trim() || "Your banner heading");
+  setElementText("#homepage-banner-preview-description", form.elements.description.value.trim() || "Your banner description will appear here.");
+  const button = document.getElementById("homepage-banner-preview-button");
+  if (button) {
+    button.textContent = form.elements.buttonText.value.trim();
+    button.hidden = !button.textContent;
+  }
+}
+
+function showHomepageBannerForm(banner = null) {
+  const form = document.getElementById("homepage-banner-form");
+  const panel = document.getElementById("homepage-banner-form-panel");
+  if (!form || !panel) return;
+  form.reset();
+  form.elements.id.value = banner?.id || "";
+  for (const field of ["heading", "description", "imageUrl", "imageAlt", "buttonText", "buttonUrl"]) form.elements[field].value = banner?.[field] || "";
+  form.elements.displayOrder.value = banner?.displayOrder ?? 0;
+  form.elements.isPublished.checked = banner?.isPublished === true;
+  setElementText("#homepage-banner-form-title", banner ? "Edit homepage banner" : "Add homepage banner");
+  setMessage("#homepage-banner-form-status", "");
+  updateHomepageBannerPublishHelp();
+  updateHomepageBannerPreview();
+  panel.classList.remove("hidden");
+  form.elements.heading.focus();
+  panel.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function validHomepageBannerUrl(value, allowOwnedUpload = false) {
+  if (allowOwnedUpload && value.startsWith("/uploads/content/") && !value.includes("..")) return true;
+  if (value.startsWith("/") && !value.startsWith("//")) return !value.includes("\\");
+  try { return ["http:", "https:"].includes(new URL(value).protocol); }
+  catch { return false; }
+}
+
+async function saveHomepageBanner(event) {
+  event.preventDefault();
+  if (!canManageHomepageBanners()) return showToast("You do not have permission to manage homepage banners.", "error");
+  const form = event.currentTarget;
+  const id = form.elements.id.value;
+  const file = form.elements.image.files?.[0];
+  const imageUrl = form.elements.imageUrl.value.trim();
+  const heading = form.elements.heading.value.trim();
+  const imageAlt = form.elements.imageAlt.value.trim();
+  const displayOrder = Number(form.elements.displayOrder.value);
+  const isPublished = form.elements.isPublished.checked;
+  if (!heading || !imageAlt || (!file && !imageUrl)) return setMessage("#homepage-banner-form-status", "Heading, alternative text, and an image or image URL are required.", "error");
+  if (imageUrl && !validHomepageBannerUrl(imageUrl, true)) return setMessage("#homepage-banner-form-status", "Enter an HTTP(S) image URL or upload an image.", "error");
+  if (!Number.isInteger(displayOrder) || displayOrder < 0 || displayOrder > 1000000) return setMessage("#homepage-banner-form-status", "Display order must be a whole number from 0 to 1000000.", "error");
+  const existing = homepageBannerRows.find(row => row.id === id);
+  if (isPublished && !existing?.isPublished && homepageBannerPublishedCount() >= 5) {
+    return setMessage("#homepage-banner-form-status", "Five banners are already published. Unpublish one before publishing another.", "error");
+  }
+
+  const payload = {
+    heading,
+    imageAlt,
+    description: form.elements.description.value.trim(),
+    buttonText: form.elements.buttonText.value.trim(),
+    buttonUrl: form.elements.buttonUrl.value.trim(),
+    displayOrder,
+    isPublished
+  };
+  let body = JSON.stringify({ ...payload, ...(!file ? { imageUrl } : {}) });
+  if (file) {
+    const formData = new FormData();
+    for (const [key, value] of Object.entries(payload)) formData.set(key, String(value));
+    formData.set("image", file);
+    body = formData;
+  }
+  const button = document.getElementById("save-homepage-banner");
+  if (button) { button.disabled = true; button.textContent = "Saving..."; }
+  setMessage("#homepage-banner-form-status", "Saving banner...");
+  try {
+    await api(id ? `${homepageBannersEndpoint}/${encodeURIComponent(id)}` : homepageBannersEndpoint, { method: id ? "PUT" : "POST", body });
+    setMessage("#homepage-banner-form-status", "Banner saved successfully.", "success");
+    document.getElementById("homepage-banner-form-panel")?.classList.add("hidden");
+    form.reset();
+    if (homepageBannerPreviewObjectUrl) { URL.revokeObjectURL(homepageBannerPreviewObjectUrl); homepageBannerPreviewObjectUrl = null; homepageBannerPreviewFile = null; }
+    showToast(`Homepage banner ${id ? "updated" : "created"}.`);
+    await loadHomepageBanners();
+  } catch (error) {
+    setMessage("#homepage-banner-form-status", error.message || "Unable to save homepage banner.", "error");
+    showToast(error.message || "Unable to save homepage banner.", "error");
+  } finally {
+    if (button) { button.disabled = false; button.textContent = "Save banner"; }
+  }
+}
+
+function initializeHomepageBannerManagement() {
+  const section = document.getElementById("section-homepage-banners");
+  const nav = document.getElementById("homepage-banners-nav-item");
+  const form = document.getElementById("homepage-banner-form");
+  const list = document.getElementById("homepage-banner-list");
+  if (!section || !nav || !form || !list || section.dataset.initialized === "true") return;
+  section.dataset.initialized = "true";
+  const permitted = canManageHomepageBanners();
+  section.hidden = !permitted;
+  nav.hidden = !permitted;
+  if (!permitted) return;
+  document.getElementById("new-homepage-banner")?.addEventListener("click", () => showHomepageBannerForm());
+  document.getElementById("refresh-homepage-banners")?.addEventListener("click", loadHomepageBanners);
+  document.getElementById("cancel-homepage-banner")?.addEventListener("click", () => {
+    document.getElementById("homepage-banner-form-panel")?.classList.add("hidden");
+    form.reset();
+    setMessage("#homepage-banner-form-status", "");
+    updateHomepageBannerPreview();
+  });
+  document.getElementById("close-homepage-banner-form")?.addEventListener("click", () => document.getElementById("cancel-homepage-banner")?.click());
+  form.addEventListener("submit", saveHomepageBanner);
+  form.elements.isPublished.addEventListener("change", updateHomepageBannerPublishHelp);
+  for (const field of [form.elements.heading, form.elements.description, form.elements.imageAlt, form.elements.buttonText]) field.addEventListener("input", updateHomepageBannerPreview);
+  form.elements.imageUrl.addEventListener("input", updateHomepageBannerPreview);
+  form.elements.image.addEventListener("change", () => {
+    const file = form.elements.image.files?.[0];
+    if (file && (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size > 4 * 1024 * 1024)) {
+      form.elements.image.value = "";
+      setMessage("#homepage-banner-form-status", "Choose a JPG, PNG or WebP image smaller than 4 MB.", "error");
+    }
+    updateHomepageBannerPreview();
+  });
+  list.addEventListener("click", async event => {
+    const edit = event.target.closest("[data-homepage-banner-edit]");
+    const publish = event.target.closest("[data-homepage-banner-publish]");
+    const remove = event.target.closest("[data-homepage-banner-delete]");
+    const id = edit?.dataset.homepageBannerEdit || publish?.dataset.homepageBannerPublish || remove?.dataset.homepageBannerDelete;
+    const banner = homepageBannerRows.find(row => row.id === id);
+    if (!banner) return;
+    if (edit) return showHomepageBannerForm(banner);
+    if (remove && !confirm(`Delete “${banner.heading}”? This cannot be undone. The uploaded image will be kept.`)) return;
+    const actionButton = publish || remove;
+    if (actionButton) {
+      actionButton.disabled = true;
+      actionButton.textContent = publish ? (banner.isPublished ? "Unpublishing..." : "Publishing...") : "Deleting...";
+    }
+    try {
+      if (publish) await api(`${homepageBannersEndpoint}/${encodeURIComponent(id)}/publication`, { method: "PATCH", body: JSON.stringify({ isPublished: !banner.isPublished }) });
+      else if (remove) await api(`${homepageBannersEndpoint}/${encodeURIComponent(id)}`, { method: "DELETE" });
+      else return;
+      await loadHomepageBanners();
+      showToast(publish ? `Banner ${banner.isPublished ? "unpublished" : "published"}.` : "Homepage banner deleted.");
+    } catch (error) {
+      if (actionButton?.isConnected) {
+        actionButton.disabled = false;
+        actionButton.textContent = publish ? (banner.isPublished ? "Unpublish" : "Publish") : "Delete";
+      }
+      showToast(error.message || "Unable to update homepage banner.", "error");
+    }
+  });
+  loadHomepageBanners();
+}
+
 const tickerEndpoint = "/api/admin/breaking-news";
 let tickerItems = [];
 
@@ -3981,6 +4241,7 @@ async function editManagedContent(type, id) {
 
 function initializeContentManagement() {
   initializeTickerManagement();
+  initializeHomepageBannerManagement();
   for (const type of Object.keys(contentEndpoints)) {
     const section = document.getElementById(`section-${type}`);
     const nav = document.querySelector(`[data-section="${type}"]`);

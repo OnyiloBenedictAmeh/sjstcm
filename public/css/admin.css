@@ -2180,10 +2180,31 @@
 .ticker-admin-panel .admin-form { margin: 16px 0 22px; padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: #fbfcfe; }
 .ticker-admin-panel .panel-header p { margin: 6px 0 0; }
 .ticker-admin-panel[hidden] { display: none !important; }
+.banner-publication-limit { margin: 12px 0; color: #405a73; font-weight: 650; }
+.homepage-banner-list { display: grid; gap: 12px; }
+.homepage-banner-card { display: grid; grid-template-columns: minmax(130px, 190px) minmax(0, 1fr); gap: 18px; padding: 15px; border: 1px solid var(--line); border-radius: 13px; background: #fff; }
+.homepage-banner-card > img { width: 100%; max-height: 150px; aspect-ratio: 16 / 10; border-radius: 9px; object-fit: cover; background: #f2f5f9; }
+.homepage-banner-card-copy { min-width: 0; }
+.homepage-banner-card-copy h4 { margin: 2px 0 6px; color: #233d5b; overflow-wrap: anywhere; }
+.homepage-banner-card-copy p { margin: 0 0 8px; color: #536a81; overflow-wrap: anywhere; }
+.homepage-banner-card-copy small { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; color: #60758a; }
+.homepage-banner-status { font-weight: 700; }
+.homepage-banner-status.published { color: #17643a; }
+.homepage-banner-status.unpublished { color: #735517; }
+.homepage-banner-card .content-row-actions { justify-content: flex-start; }
+.banner-preview-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 1fr); align-items: start; gap: 18px; }
+.homepage-banner-image-preview { width: 100%; max-width: none; max-height: 250px; }
+.homepage-banner-content-preview { min-height: 155px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: #f7f9fc; }
+.homepage-banner-content-preview h4 { margin: 8px 0; color: #233d5b; overflow-wrap: anywhere; }
+.homepage-banner-content-preview p { color: #536a81; white-space: pre-wrap; overflow-wrap: anywhere; }
+.homepage-banner-preview-button { display: inline-block; padding: 7px 11px; border-radius: 7px; background: #174f84; color: #fff; font-size: .85rem; font-weight: 650; }
 @media (max-width: 650px) {
   .content-row { align-items: stretch; flex-direction: column; }
   .content-row-actions { justify-content: flex-start; }
   .content-toolbar > * { width: 100%; }
+  .homepage-banner-card { grid-template-columns: 1fr; }
+  .homepage-banner-card > img { max-height: 220px; }
+  .banner-preview-layout { grid-template-columns: 1fr; }
 }
 
 /* Staff management */

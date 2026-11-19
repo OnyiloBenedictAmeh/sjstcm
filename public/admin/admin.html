@@ -92,6 +92,11 @@
           <span>News</span>
         </button>
 
+        <button class="admin-nav-item" data-section="homepage-banners" type="button" id="homepage-banners-nav-item" hidden>
+          <span class="nav-icon"><i class="bx bx-images" aria-hidden="true"></i></span>
+          <span>Homepage Banners</span>
+        </button>
+
         <button class="admin-nav-item" data-section="events" type="button">
           <span class="nav-icon"><i class="bx bx-calendar-event" aria-hidden="true"></i></span>
           <span>Events</span>
@@ -851,6 +856,70 @@
               <p id="ticker-form-status" class="form-status" role="status"></p>
             </form>
             <div id="ticker-admin-list" class="content-list"><div class="list-loading">Loading ticker headlines...</div></div>
+          </article>
+        </section>
+
+        <section class="admin-section" id="section-homepage-banners" hidden>
+          <div class="section-intro">
+            <div>
+              <span class="eyebrow">SCHOOL CONTENT</span>
+              <h2>Homepage Banners</h2>
+              <p>Manage the banners available for the public homepage. Up to five banners can be published at once.</p>
+            </div>
+            <button class="button" id="new-homepage-banner" type="button">+ Add banner</button>
+          </div>
+
+          <p class="banner-publication-limit" id="homepage-banner-limit" role="status" aria-live="polite"></p>
+
+          <article class="panel hidden" id="homepage-banner-form-panel">
+            <div class="panel-header">
+              <div><span class="panel-kicker">BANNER DETAILS</span><h3 id="homepage-banner-form-title">Add homepage banner</h3></div>
+              <button class="icon-button" id="close-homepage-banner-form" type="button" aria-label="Close banner form">×</button>
+            </div>
+            <form id="homepage-banner-form" class="admin-form" novalidate>
+              <input type="hidden" name="id">
+              <div class="form-grid">
+                <label><span>Heading</span><input name="heading" maxlength="240" autocomplete="off" required></label>
+                <label><span>Alternative text for image</span><input name="imageAlt" maxlength="500" autocomplete="off" required></label>
+              </div>
+              <label><span>Description <small>(optional)</small></span><textarea name="description" rows="3" maxlength="5000"></textarea></label>
+              <div class="form-grid">
+                <label><span>Button text <small>(optional)</small></span><input name="buttonText" maxlength="160"></label>
+                <label><span>Button URL <small>(optional)</small></span><input name="buttonUrl" type="text" maxlength="2048" placeholder="/admissions.html or https://..."></label>
+              </div>
+              <div class="form-grid">
+                <label><span>Display order</span><input name="displayOrder" type="number" min="0" max="1000000" step="1" value="0" required></label>
+                <label><span>Image URL <small>(use a URL or upload an image)</small></span><input name="imageUrl" type="text" maxlength="2048" placeholder="https://... or /uploads/content/..."></label>
+              </div>
+              <label><span>Upload image (JPG, PNG or WebP, max 4 MB)</span><input name="image" type="file" accept="image/jpeg,image/png,image/webp"><small>Choose a file or enter an image URL above. Uploaded images use the shared content library.</small></label>
+              <div class="banner-preview-layout">
+                <div>
+                  <img class="content-image-preview homepage-banner-image-preview" id="homepage-banner-image-preview" alt="Banner image preview" hidden>
+                  <p class="muted" id="homepage-banner-image-empty">Select an image or enter an image URL to preview it.</p>
+                </div>
+                <section class="homepage-banner-content-preview" aria-label="Banner content preview" aria-live="polite">
+                  <span class="panel-kicker">PREVIEW</span>
+                  <h4 id="homepage-banner-preview-heading">Your banner heading</h4>
+                  <p id="homepage-banner-preview-description">Your banner description will appear here.</p>
+                  <span class="homepage-banner-preview-button" id="homepage-banner-preview-button" hidden></span>
+                </section>
+              </div>
+              <label class="check-row"><input name="isPublished" type="checkbox"><span>Publish this banner</span></label>
+              <p class="muted" id="homepage-banner-publish-help"></p>
+              <div class="form-actions">
+                <button class="button secondary" id="cancel-homepage-banner" type="button">Cancel</button>
+                <button class="button" id="save-homepage-banner" type="submit">Save banner</button>
+              </div>
+              <p class="form-status" id="homepage-banner-form-status" role="status" aria-live="polite"></p>
+            </form>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header">
+              <div><span class="panel-kicker">BANNER LIBRARY</span><h3>All banners</h3></div>
+              <button class="button secondary" id="refresh-homepage-banners" type="button">Refresh</button>
+            </div>
+            <div class="homepage-banner-list" id="homepage-banner-list" aria-live="polite"><div class="list-loading">Loading homepage banners...</div></div>
           </article>
         </section>
 

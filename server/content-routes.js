@@ -1,3 +1,5 @@
+import { registerHomepageBannerRoutes } from "./homepage-banner-routes.js";
+
 const CONTENT_TYPES = {
   news: { model: "news", permission: "CONTENT_MANAGE" },
   events: { model: "event", permission: "EVENTS_MANAGE" },
@@ -50,7 +52,7 @@ export function registerContentRoutes(app, prisma, auth, requirePermission, uplo
 
   async function imageStillReferenced(url, except = {}) {
     if (!url) return false;
-    for (const model of ["news", "event", "galleryPhoto", "department"]) {
+    for (const model of ["news", "event", "galleryPhoto", "department", "homepageBanner"]) {
       if (!prisma[model]?.findFirst) continue;
       const where = { imageUrl: url };
       if (except.model === model) where.id = { not: except.id };
@@ -304,4 +306,6 @@ export function registerContentRoutes(app, prisma, auth, requirePermission, uplo
   app.post("/api/admin/gallery", ...guards("gallery"), upload, saveGallery(false));
   app.put("/api/admin/gallery/:id", ...guards("gallery"), upload, saveGallery(true));
   app.delete("/api/admin/gallery/:id", ...guards("gallery"), async (req, res) => { try { const item = await prisma.galleryPhoto.findUnique({ where: { id: req.params.id } }); if (!item) return res.status(404).json({ error: "Gallery entry not found." }); await prisma.galleryPhoto.delete({ where: { id: item.id } }); await removeOwnedImage(item.imageUrl); return res.json({ ok: true }); } catch (e) { return routeError(res, e, "ADMIN GALLERY DELETE ERROR"); } });
+
+  registerHomepageBannerRoutes(app, prisma, auth, requirePermission, uploadTools);
 }
